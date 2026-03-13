@@ -469,7 +469,7 @@ export default function SkillTree() {
 
         {/* ── CATEGORIES ── */}
         <div style={{
-          padding: "12px 18px 20px",
+          padding: "12px 18px 80px",
           background: "#faf8f4",
         }}>
             {TREES.map((t, ti) => {
