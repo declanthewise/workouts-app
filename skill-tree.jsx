@@ -368,9 +368,11 @@ export default function SkillTree() {
 
   const handleToggle = useCallback((ti) => {
     if (activeTab === ti) {
-      // CLOSE — scroll to top of page
+      // CLOSE — scroll to show the collapsed row
       setActiveTab(null);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      setTimeout(() => {
+        categoryRefs.current[ti]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 50);
     } else {
       // OPEN — scroll down just enough to show the full expanded list
       setCollapsingTab(null);
