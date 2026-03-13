@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { FRONT_PATHS, BACK_PATHS } from "../data/svgPaths";
+import { TREES } from "../data/trees";
 
 const FRONT_ANNOTATIONS = [
   { id: "sideDelt",  label: "Side Delts",   tx: 225, ty: 320, ly: 200 },
@@ -60,8 +61,8 @@ function Annotations({ annotations, allActiveMuscles, muscleColors }) {
     const isActive = allActiveMuscles.has(id);
     const color = isActive ? (muscleColors[id] || "#d97856") : "#d8d2c8";
     const textFill = isActive ? (muscleColors[id] || "#d97856") : "#c5beb4";
-    const lineOpacity = isActive ? 0.5 : 0.2;
-    const dotOpacity = isActive ? 0.7 : 0.25;
+    const lineOpacity = isActive ? 0.5 : 0.5;
+    const dotOpacity = isActive ? 0.7 : 0.7;
 
     return (
       <g key={id}>
@@ -117,6 +118,7 @@ function AutoSVG({ children, align, style }) {
 export default function CoverageSection({ allActiveMuscles, muscleColors }) {
   return (
     <div style={{
+      position: "relative",
       display: "flex",
       flexDirection: "column",
       flex: 1,
@@ -137,6 +139,31 @@ export default function CoverageSection({ allActiveMuscles, muscleColors }) {
         </g>
         <Annotations annotations={BACK_ANNOTATIONS} allActiveMuscles={allActiveMuscles} muscleColors={muscleColors} />
       </AutoSVG>
+
+      {/* Category labels — overlaid */}
+      <div style={{
+        position: "absolute",
+        right: 24,
+        top: 0,
+        bottom: 0,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: "10px",
+        pointerEvents: "none",
+      }}>
+        {TREES.map((t) => (
+          <span key={t.id} style={{
+            fontSize: "11px",
+            fontWeight: 600,
+            color: t.color,
+            letterSpacing: "0.5px",
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            {t.name}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

@@ -2,6 +2,32 @@ import { ALL_MUSCLES } from "../data/muscles";
 
 const diffColors = ["", "#4caf50", "#a0b830", "#f5c242", "#f57c42", "#e04040"];
 
+function EquipBadge({ equip }) {
+  if (!equip) return null;
+  const c = "#a09888";
+  if (equip === "bar") {
+    return (
+      <svg width={16} height={16} viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
+        {/* door frame sides */}
+        <rect x={1} y={1} width={2} height={15} fill={c} opacity={0.4} />
+        <rect x={13} y={1} width={2} height={15} fill={c} opacity={0.4} />
+        {/* bar */}
+        <rect x={0} y={5} width={16} height={2.5} rx={1.25} fill={c} />
+        {/* rubber end caps */}
+        <rect x={0} y={4} width={2.5} height={4.5} rx={1} fill={c} />
+        <rect x={13.5} y={4} width={2.5} height={4.5} rx={1} fill={c} />
+      </svg>
+    );
+  }
+  // kettlebell
+  return (
+    <svg width={16} height={16} viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
+      <circle cx={8} cy={10} r={5} fill={c} />
+      <path d="M5.5 6.5 Q5 3 8 2.5 Q11 3 10.5 6.5" fill="none" stroke={c} strokeWidth={2} strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function DiffBadge({ diff, filled, color }) {
   const fg = filled ? "#fff" : color;
   const bg = filled ? color : (color + "15");
@@ -71,6 +97,7 @@ export default function ExercisePicker({
                 {node.name}
               </span>
               <DiffBadge diff={node.diff} filled color={diffColors[node.diff]} />
+              <EquipBadge equip={node.equip} />
               <span style={{
                 marginLeft: "auto", display: "flex", alignItems: "center", gap: "4px",
                 flexShrink: 0,
@@ -136,6 +163,7 @@ export default function ExercisePicker({
                       {ex.name}
                     </span>
                     <DiffBadge diff={ex.diff} filled={isSelected} color={diffColors[ex.diff]} />
+                    <EquipBadge equip={ex.equip} />
                     {isSelected && (
                       <span
                         onClick={(e) => { e.stopPropagation(); onToggle(ti); }}

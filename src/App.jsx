@@ -68,7 +68,6 @@ export default function SkillTree() {
       <style dangerouslySetInnerHTML={{ __html: `html, body { margin: 0; overflow-x: hidden; background: #faf8f4; } #root { padding-bottom: ${isAnatomy ? "0px" : "env(safe-area-inset-bottom, 0px)"}; } * { -webkit-tap-highlight-color: transparent; }` }} />
       <div style={{
         height: isAnatomy ? "100dvh" : undefined,
-        minHeight: isAnatomy ? undefined : "100vh",
         display: isAnatomy ? "flex" : undefined,
         flexDirection: isAnatomy ? "column" : undefined,
         overflow: isAnatomy ? "hidden" : undefined,
@@ -89,14 +88,25 @@ export default function SkillTree() {
             background: "#f7f4ef",
             borderBottom: "1px solid #e8e2d8",
           }}>
-            <span style={{
-              fontSize: "18px",
-              fontWeight: 600,
-              fontFamily: "'Fraunces', serif",
-              color: "#3a352e",
-            }}>
-              Workouts
-            </span>
+            <div>
+              <span style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                fontFamily: "'Fraunces', serif",
+                color: "#3a352e",
+              }}>
+                Homebody
+              </span>
+              <span style={{
+                fontSize: "11px",
+                fontWeight: 400,
+                color: "#a09888",
+                marginLeft: "8px",
+                letterSpacing: "0.3px",
+              }}>
+                Strength Training At-Home
+              </span>
+            </div>
             <svg
               width={48} height={48} viewBox="0 0 48 48"
               style={{
@@ -164,6 +174,42 @@ export default function SkillTree() {
                   sortMuscles={sortMuscles}
                 />
               ))}
+
+              {/* ── LEGEND ── */}
+              <div style={{
+                display: "flex", flexWrap: "wrap", gap: "12px 20px",
+                justifyContent: "center",
+                padding: "16px 0 4px",
+                marginTop: "8px",
+              }}>
+                {/* Difficulty */}
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <svg width={16} height={16} viewBox="0 0 18 18" style={{ flexShrink: 0 }}>
+                    <circle cx={9} cy={9} r={8} fill="#4caf50" />
+                    <text textAnchor="middle" dominantBaseline="central" fontSize={9} fontWeight={700} fill="#fff" x={9} y={9.5}>1</text>
+                  </svg>
+                  <span style={{ fontSize: "10px", color: "#a09888" }}>Difficulty</span>
+                </div>
+                {/* Pull-up bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <svg width={16} height={16} viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
+                    <rect x={1} y={1} width={2} height={15} fill="#a09888" opacity={0.4} />
+                    <rect x={13} y={1} width={2} height={15} fill="#a09888" opacity={0.4} />
+                    <rect x={0} y={5} width={16} height={2.5} rx={1.25} fill="#a09888" />
+                    <rect x={0} y={4} width={2.5} height={4.5} rx={1} fill="#a09888" />
+                    <rect x={13.5} y={4} width={2.5} height={4.5} rx={1} fill="#a09888" />
+                  </svg>
+                  <span style={{ fontSize: "10px", color: "#a09888" }}>Pull-up bar</span>
+                </div>
+                {/* Kettlebell */}
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                  <svg width={16} height={16} viewBox="0 0 16 16" style={{ flexShrink: 0 }}>
+                    <circle cx={8} cy={10} r={5} fill="#a09888" />
+                    <path d="M5.5 6.5 Q5 3 8 2.5 Q11 3 10.5 6.5" fill="none" stroke="#a09888" strokeWidth={2} strokeLinecap="round" />
+                  </svg>
+                  <span style={{ fontSize: "10px", color: "#a09888" }}>Kettlebell</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
