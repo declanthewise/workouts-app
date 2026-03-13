@@ -411,7 +411,7 @@ export default function SkillTree() {
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700&family=Fraunces:wght@300;500;700&display=swap" rel="stylesheet" />
-      <style dangerouslySetInnerHTML={{ __html: "body { margin: 0; background: #faf8f4; }" }} />
+      <style dangerouslySetInnerHTML={{ __html: "body { margin: 0; background: #faf8f4; } #root { padding-bottom: env(safe-area-inset-bottom, 0px); }" }} />
       <div style={{
         minHeight: "100vh",
         background: "#faf8f4",
@@ -469,7 +469,7 @@ export default function SkillTree() {
 
         {/* ── CATEGORIES ── */}
         <div style={{
-          padding: "12px 18px 80px",
+          padding: "12px 18px 24px",
           background: "#faf8f4",
         }}>
             {TREES.map((t, ti) => {
