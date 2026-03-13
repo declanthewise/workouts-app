@@ -97,7 +97,12 @@ function AutoSVG({ children, align, style }) {
   const measure = useCallback(() => {
     if (!gRef.current) return;
     const { x, y, width, height } = gRef.current.getBBox();
-    setVb(`${x - PAD} ${y - PAD} ${width + PAD * 2} ${height + PAD * 2}`);
+    // The annotation labels extend far left of the body figure,
+    // making the bbox asymmetric. Add matching padding on the right
+    // so the body figure appears centered.
+    const leftOverhang = Math.abs(x);
+    const rightPad = Math.max(PAD, leftOverhang);
+    setVb(`${x - PAD} ${y - PAD} ${width + PAD + rightPad} ${height + PAD * 2}`);
   }, []);
 
   useEffect(() => {

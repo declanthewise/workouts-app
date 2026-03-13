@@ -65,7 +65,7 @@ export default function SkillTree() {
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700&family=Fraunces:wght@300;500;700&display=swap" rel="stylesheet" />
-      <style dangerouslySetInnerHTML={{ __html: `html, body { margin: 0; overflow-x: hidden; background: #faf8f4; } #root { padding-bottom: ${isAnatomy ? "0px" : "env(safe-area-inset-bottom, 0px)"}; } * { -webkit-tap-highlight-color: transparent; }` }} />
+      <style dangerouslySetInnerHTML={{ __html: `html, body { margin: 0; overflow-x: hidden; background: #faf8f4; ${isAnatomy ? "overflow: hidden; height: 100dvh;" : ""} } #root { padding-bottom: ${isAnatomy ? "0px" : "env(safe-area-inset-bottom, 0px)"}; ${isAnatomy ? "height: 100dvh; overflow: hidden;" : ""} } * { -webkit-tap-highlight-color: transparent; }` }} />
       <div style={{
         height: isAnatomy ? "100dvh" : undefined,
         display: isAnatomy ? "flex" : undefined,
@@ -155,7 +155,7 @@ export default function SkillTree() {
             />
           ) : (
             <div style={{
-              padding: "12px 18px 24px",
+              padding: "12px 18px 8px",
               background: "#faf8f4",
             }}>
               {TREES.map((t, ti) => (
