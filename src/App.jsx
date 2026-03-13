@@ -41,8 +41,6 @@ export default function SkillTree() {
   TREES.forEach((t) => {
     t.nodes[activeLevels[t.id]].muscles.forEach((m) => allActiveMuscles.add(m));
   });
-  const muscleCount = allActiveMuscles.size;
-
   const muscleColors = {};
   TREES.forEach((t) => {
     const node = t.nodes[activeLevels[t.id]];
@@ -74,7 +72,6 @@ export default function SkillTree() {
           <CoverageSection
             allActiveMuscles={allActiveMuscles}
             muscleColors={muscleColors}
-            muscleCount={muscleCount}
           />
 
           {/* ── CATEGORIES ── */}
