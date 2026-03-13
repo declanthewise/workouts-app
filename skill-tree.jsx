@@ -411,7 +411,7 @@ export default function SkillTree() {
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700&family=Fraunces:wght@300;500;700&display=swap" rel="stylesheet" />
-      <style dangerouslySetInnerHTML={{ __html: "html { overflow-y: scroll; } body { margin: 0; background: #faf8f4; }" }} />
+      <style dangerouslySetInnerHTML={{ __html: "body { margin: 0; background: #faf8f4; }" }} />
       <div style={{
         minHeight: "100vh",
         background: "#faf8f4",
