@@ -1,37 +1,37 @@
+import { useState, useRef, useEffect, useCallback } from "react";
 import { FRONT_PATHS, BACK_PATHS } from "../data/svgPaths";
 
-// Each muscle is labeled once, on the view where it's most visible.
-// Labels on the left point to the front body; labels on the right point to the back body.
-// Ordered top-to-bottom by target y so leader lines never cross.
-const ANNOTATIONS = [
-  // Front body — left-side labels
-  { id: "sideDelt",  label: "Side Delts",   side: "left",  tx: 225, ty: 320, ly: 200 },
-  { id: "frontDelt", label: "Front Delts",  side: "left",  tx: 255, ty: 355, ly: 295 },
-  { id: "chest",     label: "Chest",        side: "left",  tx: 320, ty: 395, ly: 390 },
-  { id: "bicep",     label: "Biceps",       side: "left",  tx: 195, ty: 460, ly: 480 },
-  { id: "abs",       label: "Abs",          side: "left",  tx: 345, ty: 530, ly: 565 },
-  { id: "oblique",   label: "Obliques",     side: "left",  tx: 285, ty: 545, ly: 650 },
-  { id: "hipFlexor", label: "Hip Flexors",  side: "left",  tx: 340, ty: 700, ly: 735 },
-  { id: "adductor",  label: "Adductors",    side: "left",  tx: 320, ty: 770, ly: 820 },
-  { id: "quad",      label: "Quads",        side: "left",  tx: 290, ty: 870, ly: 910 },
-  { id: "tibialis",  label: "Tibialis",     side: "left",  tx: 275, ty: 1060, ly: 1050 },
-  // Back body — right-side labels
-  { id: "rearDelt",  label: "Rear Delts",   side: "right", tx: 1220, ty: 340, ly: 240 },
-  { id: "upperBack", label: "Upper Back",   side: "right", tx: 1150, ty: 375, ly: 350 },
-  { id: "tricep",    label: "Triceps",      side: "right", tx: 1240, ty: 470, ly: 460 },
-  { id: "lat",       label: "Lats",         side: "right", tx: 1165, ty: 500, ly: 560 },
-  { id: "forearm",   label: "Forearms",     side: "right", tx: 1300, ty: 600, ly: 655 },
-  { id: "lowerBack", label: "Lower Back",   side: "right", tx: 1100, ty: 610, ly: 745 },
-  { id: "glute",     label: "Glutes",       side: "right", tx: 1140, ty: 730, ly: 835 },
-  { id: "hamstring", label: "Hamstrings",   side: "right", tx: 1175, ty: 870, ly: 935 },
-  { id: "calf",      label: "Calves",       side: "right", tx: 1175, ty: 1110, ly: 1080 },
+const FRONT_ANNOTATIONS = [
+  { id: "sideDelt",  label: "Side Delts",   tx: 225, ty: 320, ly: 200 },
+  { id: "frontDelt", label: "Front Delts",  tx: 255, ty: 355, ly: 295 },
+  { id: "chest",     label: "Chest",        tx: 320, ty: 395, ly: 390 },
+  { id: "bicep",     label: "Biceps",       tx: 195, ty: 460, ly: 480 },
+  { id: "abs",       label: "Abs",          tx: 345, ty: 530, ly: 565 },
+  { id: "oblique",   label: "Obliques",     tx: 285, ty: 545, ly: 650 },
+  { id: "hipFlexor", label: "Hip Flexors",  tx: 340, ty: 700, ly: 735 },
+  { id: "adductor",  label: "Adductors",    tx: 320, ty: 770, ly: 820 },
+  { id: "quad",      label: "Quads",        tx: 290, ty: 870, ly: 910 },
+  { id: "tibialis",  label: "Tibialis",     tx: 275, ty: 1060, ly: 1050 },
 ];
 
-const ELBOW_X = { left: 50, right: 1400 };
-const LABEL_X = { left: -30, right: 1478 };
-const LINE_X  = { left: -15, right: 1463 };
-const ANCHOR  = { left: "end", right: "start" };
+// Back body annotations — target x mirrored to left side of figure
+const BACK_ANNOTATIONS = [
+  { id: "rearDelt",  label: "Rear Delts",   tx: 230, ty: 340, ly: 240 },
+  { id: "upperBack", label: "Upper Back",   tx: 300, ty: 375, ly: 350 },
+  { id: "tricep",    label: "Triceps",      tx: 210, ty: 470, ly: 460 },
+  { id: "lat",       label: "Lats",         tx: 285, ty: 500, ly: 560 },
+  { id: "forearm",   label: "Forearms",     tx: 150, ty: 600, ly: 655 },
+  { id: "lowerBack", label: "Lower Back",   tx: 350, ty: 610, ly: 745 },
+  { id: "glute",     label: "Glutes",       tx: 310, ty: 730, ly: 835 },
+  { id: "hamstring", label: "Hamstrings",   tx: 275, ty: 870, ly: 935 },
+  { id: "calf",      label: "Calves",       tx: 275, ty: 1110, ly: 1080 },
+];
+
+const ELBOW_X = 50;
+const LABEL_X = -30;
+const LINE_X  = -15;
 const FONT = "'DM Sans', sans-serif";
+const PAD = 20;
 
 function BodyPaths({ paths, litMuscles, muscleColors }) {
   const bodyColor = "#ebe6dd";
@@ -55,59 +55,88 @@ function BodyPaths({ paths, litMuscles, muscleColors }) {
   });
 }
 
+function Annotations({ annotations, allActiveMuscles, muscleColors }) {
+  return annotations.map(({ id, label, tx, ty, ly }) => {
+    const isActive = allActiveMuscles.has(id);
+    const color = isActive ? (muscleColors[id] || "#d97856") : "#d8d2c8";
+    const textFill = isActive ? (muscleColors[id] || "#d97856") : "#c5beb4";
+    const lineOpacity = isActive ? 0.5 : 0.2;
+    const dotOpacity = isActive ? 0.7 : 0.25;
+
+    return (
+      <g key={id}>
+        <polyline
+          points={`${LINE_X},${ly} ${ELBOW_X},${ly} ${tx},${ty}`}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.5}
+          opacity={lineOpacity}
+        />
+        <circle cx={tx} cy={ty} r={5} fill={color} opacity={dotOpacity} />
+        <text
+          x={LABEL_X}
+          y={ly + 13}
+          textAnchor="end"
+          fontSize={36}
+          fontFamily={FONT}
+          fill={textFill}
+          fontWeight={isActive ? 600 : 400}
+        >
+          {label}
+        </text>
+      </g>
+    );
+  });
+}
+
+function AutoSVG({ children, align, style }) {
+  const gRef = useRef(null);
+  const [vb, setVb] = useState(null);
+
+  const measure = useCallback(() => {
+    if (!gRef.current) return;
+    const { x, y, width, height } = gRef.current.getBBox();
+    setVb(`${x - PAD} ${y - PAD} ${width + PAD * 2} ${height + PAD * 2}`);
+  }, []);
+
+  useEffect(() => {
+    measure();
+  }, [measure]);
+
+  return (
+    <svg
+      viewBox={vb || "0 0 1 1"}
+      style={{ ...style, visibility: vb ? "visible" : "hidden" }}
+      preserveAspectRatio={`xMidY${align} meet`}
+    >
+      <g ref={gRef}>{children}</g>
+    </svg>
+  );
+}
+
 export default function CoverageSection({ allActiveMuscles, muscleColors }) {
   return (
     <div style={{
-      padding: "8px 0",
-      borderBottom: "1px solid #e8e2d8",
+      display: "flex",
+      flexDirection: "column",
+      flex: 1,
+      minHeight: 0,
+      overflow: "hidden",
       background: "#f7f4ef",
     }}>
-      <svg
-        viewBox="-300 80 2048 1320"
-        style={{ width: "100%", height: "auto", display: "block" }}
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {/* Body silhouettes */}
+      {/* Front body — floats to top */}
+      <AutoSVG align="Min" style={{ width: "100%", flex: 1, minHeight: 0 }}>
         <BodyPaths paths={FRONT_PATHS} litMuscles={allActiveMuscles} muscleColors={muscleColors} />
-        <BodyPaths paths={BACK_PATHS} litMuscles={allActiveMuscles} muscleColors={muscleColors} />
+        <Annotations annotations={FRONT_ANNOTATIONS} allActiveMuscles={allActiveMuscles} muscleColors={muscleColors} />
+      </AutoSVG>
 
-        {/* Muscle annotations */}
-        {ANNOTATIONS.map(({ id, label, side, tx, ty, ly }) => {
-          const isActive = allActiveMuscles.has(id);
-          const color = isActive ? (muscleColors[id] || "#d97856") : "#d8d2c8";
-          const textFill = isActive ? (muscleColors[id] || "#d97856") : "#c5beb4";
-          const lineOpacity = isActive ? 0.5 : 0.2;
-          const dotOpacity = isActive ? 0.7 : 0.25;
-
-          return (
-            <g key={id}>
-              {/* Elbow leader line: horizontal from label, then diagonal to target */}
-              <polyline
-                points={`${LINE_X[side]},${ly} ${ELBOW_X[side]},${ly} ${tx},${ty}`}
-                fill="none"
-                stroke={color}
-                strokeWidth={1.5}
-                opacity={lineOpacity}
-              />
-              {/* Dot on muscle */}
-              <circle cx={tx} cy={ty} r={5} fill={color} opacity={dotOpacity} />
-              {/* Label */}
-              <text
-                x={LABEL_X[side]}
-                y={ly + 13}
-                textAnchor={ANCHOR[side]}
-                fontSize={36}
-                fontFamily={FONT}
-                fill={textFill}
-                fontWeight={isActive ? 600 : 400}
-              >
-                {label}
-              </text>
-            </g>
-          );
-        })}
-
-      </svg>
+      {/* Back body — floats to bottom */}
+      <AutoSVG align="Max" style={{ width: "100%", flex: 1, minHeight: 0 }}>
+        <g transform="translate(-730, 0)">
+          <BodyPaths paths={BACK_PATHS} litMuscles={allActiveMuscles} muscleColors={muscleColors} />
+        </g>
+        <Annotations annotations={BACK_ANNOTATIONS} allActiveMuscles={allActiveMuscles} muscleColors={muscleColors} />
+      </AutoSVG>
     </div>
   );
 }

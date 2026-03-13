@@ -1,9 +1,45 @@
 import { ALL_MUSCLES } from "../data/muscles";
 
 const diffColors = ["", "#4caf50", "#a0b830", "#f5c242", "#f57c42", "#e04040"];
-const diffBg = ["", "#4caf5015", "#a0b83015", "#f5c24215", "#f57c4215", "#e0404015"];
 
-export default function CategoryRow({
+function DiffBadge({ diff, filled, color }) {
+  const fg = filled ? "#fff" : color;
+  const bg = filled ? color : (color + "15");
+  const stroke = filled ? "none" : (color + "40");
+  const sw = filled ? 0 : 1;
+
+  const textProps = {
+    textAnchor: "middle", dominantBaseline: "central",
+    fontSize: 9, fontWeight: 700, fill: fg,
+  };
+
+  if (diff <= 2) {
+    return (
+      <svg width={18} height={18} viewBox="0 0 18 18" style={{ flexShrink: 0 }}>
+        <circle cx={9} cy={9} r={8} fill={bg} stroke={stroke} strokeWidth={sw} />
+        <text x={9} y={9.5} {...textProps}>{diff}</text>
+      </svg>
+    );
+  }
+
+  if (diff <= 4) {
+    return (
+      <svg width={18} height={18} viewBox="0 0 18 18" style={{ flexShrink: 0 }}>
+        <polygon points="9,1 17,16 1,16" fill={bg} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+        <text x={9} y={11.5} {...textProps}>{diff}</text>
+      </svg>
+    );
+  }
+
+  return (
+    <svg width={18} height={18} viewBox="0 0 18 18" style={{ flexShrink: 0 }}>
+      <polygon points="9,1 17,9 9,17 1,9" fill={bg} stroke={stroke} strokeWidth={sw} strokeLinejoin="round" />
+      <text x={9} y={9.5} {...textProps}>{diff}</text>
+    </svg>
+  );
+}
+
+export default function ExercisePicker({
   tree: t,
   index: ti,
   activeTab,
@@ -34,14 +70,7 @@ export default function CategoryRow({
               <span style={{ fontSize: "13px", color: "#5a554e", fontWeight: 400 }}>
                 {node.name}
               </span>
-              <div style={{
-                width: "18px", height: "18px", borderRadius: "50%",
-                background: diffColors[node.diff],
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "9px", fontWeight: 700, flexShrink: 0, color: "#fff",
-              }}>
-                {node.diff}
-              </div>
+              <DiffBadge diff={node.diff} filled color={diffColors[node.diff]} />
               <span style={{
                 marginLeft: "auto", display: "flex", alignItems: "center", gap: "4px",
                 flexShrink: 0,
@@ -106,17 +135,7 @@ export default function CategoryRow({
                     }}>
                       {ex.name}
                     </span>
-                    <div style={{
-                      width: "18px", height: "18px", borderRadius: "50%",
-                      background: isSelected ? diffColors[ex.diff] : diffBg[ex.diff],
-                      border: `1px solid ${isSelected ? diffColors[ex.diff] : diffColors[ex.diff] + "40"}`,
-                      boxSizing: "border-box",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: "9px", fontWeight: 700, flexShrink: 0,
-                      color: isSelected ? "#fff" : diffColors[ex.diff],
-                    }}>
-                      {ex.diff}
-                    </div>
+                    <DiffBadge diff={ex.diff} filled={isSelected} color={diffColors[ex.diff]} />
                     {isSelected && (
                       <span
                         onClick={(e) => { e.stopPropagation(); onToggle(ti); }}
