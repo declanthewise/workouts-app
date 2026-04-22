@@ -1,3 +1,22 @@
 node_modules
 dist
 .DS_Store
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Env files (possible secrets)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Vite local cache
+.vite/
