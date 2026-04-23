@@ -55,7 +55,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange }) {
           paddingLeft: "16px",
           paddingRight: "10px",
           fontFamily: "'Fraunces', serif",
-          fontSize: "13px",
+          fontSize: "14px",
           fontWeight: 500,
           color: "#6b6358",
           lineHeight: 1.15,
@@ -81,6 +81,8 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange }) {
             WebkitOverflowScrolling: "touch",
             paddingTop: "5px",
             paddingBottom: "5px",
+            maskImage: "linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%)",
+            WebkitMaskImage: "linear-gradient(to right, black 0, black calc(100% - 28px), transparent 100%)",
           }}
         >
           {tree.nodes.map((ex, i) => {
@@ -104,7 +106,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange }) {
                   color: "#3a352e",
                   border: "none",
                   boxShadow: isSelected
-                    ? `inset 3px 0 0 ${tree.color}, 0 2px 10px rgba(40,30,20,0.08)`
+                    ? `inset 4px 0 0 ${tree.color}, 0 3px 8px rgba(40,30,20,0.10)`
                     : "0 1px 2px rgba(40,30,20,0.04)",
                   display: "flex",
                   alignItems: "center",

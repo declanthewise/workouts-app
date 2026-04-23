@@ -69,27 +69,44 @@ export default function App() {
             padding: "6px 0 10px",
             minHeight: 0,
           }}>
-            {TREES.map((t, idx) => (
-              <Fragment key={t.id}>
-                <ProgressionRow
-                  tree={t}
-                  activeLevel={activeLevels[t.id]}
-                  onLevelChange={(treeId, level) =>
-                    setActiveLevels((prev) =>
-                      prev[treeId] === level ? prev : { ...prev, [treeId]: level }
-                    )
-                  }
-                />
-                {(idx === 1 || idx === 3 || idx === 5) && (
-                  <div style={{
-                    height: "1px",
-                    margin: "0 18px",
-                    background: "#dfd8cc",
-                    flexShrink: 0,
-                  }} />
-                )}
-              </Fragment>
-            ))}
+            {TREES.map((t, idx) => {
+              const caption = { 0: "First Pair", 2: "Second Pair", 4: "Third Pair", 6: "Core Triplet" }[idx];
+              return (
+                <Fragment key={t.id}>
+                  {caption && idx !== 0 && (
+                    <div style={{
+                      height: "1px",
+                      margin: "2px 18px 0",
+                      background: "#dfd8cc",
+                      flexShrink: 0,
+                    }} />
+                  )}
+                  {caption && (
+                    <div style={{
+                      padding: idx === 0 ? "4px 18px 2px" : "10px 18px 2px",
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "10.5px",
+                      fontWeight: 700,
+                      letterSpacing: "1.2px",
+                      textTransform: "uppercase",
+                      color: "#a09888",
+                      flexShrink: 0,
+                    }}>
+                      {caption}
+                    </div>
+                  )}
+                  <ProgressionRow
+                    tree={t}
+                    activeLevel={activeLevels[t.id]}
+                    onLevelChange={(treeId, level) =>
+                      setActiveLevels((prev) =>
+                        prev[treeId] === level ? prev : { ...prev, [treeId]: level }
+                      )
+                    }
+                  />
+                </Fragment>
+              );
+            })}
           </div>
         </div>
       </div>
