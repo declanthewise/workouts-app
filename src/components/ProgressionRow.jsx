@@ -23,12 +23,12 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange }) {
       rafRef.current = null;
       const scroller = scrollerRef.current;
       if (!scroller) return;
-      const left = scroller.scrollLeft;
+      const scrollerLeft = scroller.getBoundingClientRect().left;
       let closest = 0;
       let closestDist = Infinity;
       tileRefs.current.forEach((tile, i) => {
         if (!tile) return;
-        const dist = Math.abs(tile.offsetLeft - left);
+        const dist = Math.abs(tile.getBoundingClientRect().left - scrollerLeft);
         if (dist < closestDist) {
           closestDist = dist;
           closest = i;

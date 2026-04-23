@@ -80,11 +80,11 @@ export default function App() {
           }}>
             <span style={{
               fontSize: "18px",
-              fontWeight: 600,
+              fontWeight: showAbout ? 500 : 600,
               fontFamily: "'Fraunces', serif",
               color: "#3a352e",
             }}>
-              Homebody
+              {showAbout ? "About" : "Homebody"}
             </span>
             <button
               type="button"
