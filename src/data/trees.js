@@ -4,7 +4,7 @@ export const TREES = [
   {
     id: "pullup",
     name: "Pull-up",
-    color: "#2e7d9e",
+    color: "#7b8fa3",
     nodes: [
       { name: "Scapular Pulls" },
       { name: "Arch Hangs" },
@@ -16,7 +16,7 @@ export const TREES = [
   {
     id: "squat",
     name: "Squat",
-    color: "#b5432a",
+    color: "#7b8fa3",
     nodes: [
       { name: "Assisted Squat" },
       { name: "Squat" },
@@ -30,7 +30,7 @@ export const TREES = [
   {
     id: "dip",
     name: "Dip",
-    color: "#7b5ea7",
+    color: "#87977a",
     nodes: [
       { name: "Parallel Bar Support Hold" },
       { name: "Negative Dips" },
@@ -41,7 +41,7 @@ export const TREES = [
   {
     id: "hinge",
     name: "Hinge",
-    color: "#1a7a5a",
+    color: "#87977a",
     nodes: [
       { name: "Romanian Deadlift" },
       { name: "Single-Leg Deadlift" },
@@ -52,7 +52,7 @@ export const TREES = [
   {
     id: "row",
     name: "Row",
-    color: "#367a88",
+    color: "#b0927a",
     nodes: [
       { name: "Vertical Rows" },
       { name: "Incline Rows" },
@@ -64,7 +64,7 @@ export const TREES = [
   {
     id: "pushup",
     name: "Push-up",
-    color: "#c2538c",
+    color: "#b0927a",
     nodes: [
       { name: "Wall Push-ups" },
       { name: "Incline Push-ups" },
@@ -75,8 +75,8 @@ export const TREES = [
   },
   {
     id: "antiExtension",
-    name: "Anti-Extension",
-    color: "#c47b2a",
+    name: "Core Anti-Extension",
+    color: "#9c9083",
     nodes: [
       { name: "Plank" },
       { name: "Ring Ab Rollouts" },
@@ -85,8 +85,8 @@ export const TREES = [
   },
   {
     id: "antiRotation",
-    name: "Anti-Rotation",
-    color: "#8c6b2e",
+    name: "Core Anti-Rotation",
+    color: "#9c9083",
     nodes: [
       { name: "Banded Pallof Press" },
       { name: "Ring Pallof Press" },
@@ -94,8 +94,8 @@ export const TREES = [
   },
   {
     id: "extension",
-    name: "Extension",
-    color: "#6b563f",
+    name: "Core Extension",
+    color: "#9c9083",
     nodes: [
       { name: "Reverse Hyperextension" },
       { name: "Glute-Ham Raise" },

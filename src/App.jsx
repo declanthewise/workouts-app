@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { TREES } from "./data/trees";
 import ProgressionRow from "./components/ProgressionRow";
 
@@ -69,17 +69,26 @@ export default function App() {
             padding: "6px 0 10px",
             minHeight: 0,
           }}>
-            {TREES.map((t) => (
-              <ProgressionRow
-                key={t.id}
-                tree={t}
-                activeLevel={activeLevels[t.id]}
-                onLevelChange={(treeId, level) =>
-                  setActiveLevels((prev) =>
-                    prev[treeId] === level ? prev : { ...prev, [treeId]: level }
-                  )
-                }
-              />
+            {TREES.map((t, idx) => (
+              <Fragment key={t.id}>
+                <ProgressionRow
+                  tree={t}
+                  activeLevel={activeLevels[t.id]}
+                  onLevelChange={(treeId, level) =>
+                    setActiveLevels((prev) =>
+                      prev[treeId] === level ? prev : { ...prev, [treeId]: level }
+                    )
+                  }
+                />
+                {(idx === 1 || idx === 3 || idx === 5) && (
+                  <div style={{
+                    height: "1px",
+                    margin: "0 18px",
+                    background: "#dfd8cc",
+                    flexShrink: 0,
+                  }} />
+                )}
+              </Fragment>
             ))}
           </div>
         </div>
