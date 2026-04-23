@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { TREES } from "./data/trees";
-import ProgressionRow from "./components/ExercisePicker";
+import ProgressionRow from "./components/ProgressionRow";
 
 export default function App() {
   const [activeLevels, setActiveLevels] = useState(
@@ -18,7 +18,6 @@ export default function App() {
         body { margin: 0; overflow: hidden; background: #faf8f4; }
         #root { height: 100dvh; }
         * { -webkit-tap-highlight-color: transparent; }
-        .tile-scroller::-webkit-scrollbar { display: none; }
       ` }} />
       <div style={{
         background: "#faf8f4",
