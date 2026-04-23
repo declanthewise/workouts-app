@@ -2,6 +2,7 @@ import { useState, useEffect, Fragment } from "react";
 import { TREES } from "./data/trees";
 import ProgressionRow from "./components/ProgressionRow";
 import About from "./components/About";
+import Instructions from "./components/Instructions";
 
 const STORAGE_KEY = "homebody.activeLevels.v1";
 
@@ -29,6 +30,7 @@ function loadActiveLevels() {
 export default function App() {
   const [activeLevels, setActiveLevels] = useState(loadActiveLevels);
   const [showAbout, setShowAbout] = useState(false);
+  const [openExercise, setOpenExercise] = useState(null);
 
   useEffect(() => {
     try {
@@ -139,6 +141,7 @@ export default function App() {
                       letterSpacing: "1.2px",
                       textTransform: "uppercase",
                       color: "#a09888",
+                      textAlign: "center",
                       flexShrink: 0,
                     }}>
                       {caption}
@@ -152,6 +155,7 @@ export default function App() {
                         prev[treeId] === level ? prev : { ...prev, [treeId]: level }
                       )
                     }
+                    onOpenInstructions={setOpenExercise}
                   />
                 </Fragment>
               );
@@ -160,6 +164,7 @@ export default function App() {
           )}
         </div>
       </div>
+      <Instructions exercise={openExercise} onClose={() => setOpenExercise(null)} />
     </>
   );
 }
