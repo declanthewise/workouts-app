@@ -20,7 +20,7 @@ Homebody is a single-page Vite + React 18 app for tracking progress through the 
 
 ### Layout contract (`src/App.jsx` + `src/components/ProgressionRow.jsx`)
 
-The viewport is pinned: `html`/`body` use `overflow: hidden` and `#root` is `100dvh`. The nine `ProgressionRow`s share the vertical space via `flex: 1` so the whole routine always fits on screen without page scroll. Breaking that invariant (e.g. adding page-level scroll, letting rows grow past their flex share) defeats the core design.
+The outer page never scrolls: `html`/`body` use `overflow: hidden` and `#root` is `100dvh`. On a tall viewport the nine `ProgressionRow`s share the vertical space and everything fits at once. On a short viewport (e.g. Chrome on iOS) rows hold a `ROW_MIN_H` of 72px (`flex: 1 0 72px`) and the rows container below the header scrolls internally — the header stays pinned. The invariant is "page never scrolls, only the rows column does"; adding page-level scroll breaks it.
 
 Within a row, horizontal tile selection is driven by native scroll-snap (`scroll-snap-type: x mandatory`, `scroll-snap-align: start`). On scroll, `ProgressionRow` finds the tile whose `offsetLeft` is closest to `scrollLeft` and calls `onLevelChange`. A trailing spacer (`flex: 0 0 calc(100% - TILE_W - 8px)`) is required so the last tile can snap to the left edge — removing it breaks selection of the final exercise. Tap on a tile calls `scrollIntoView({ inline: "start", behavior: "smooth" })` and the scroll handler updates state from there; state is never set directly from the click.
 

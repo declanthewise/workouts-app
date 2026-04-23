@@ -49,6 +49,7 @@ export default function App() {
         body { margin: 0; overflow: hidden; background: #faf8f4; }
         #root { height: 100dvh; }
         * { -webkit-tap-highlight-color: transparent; }
+        .rows-scroller::-webkit-scrollbar { display: none; }
       ` }} />
       <div style={{
         background: "#faf8f4",
@@ -106,12 +107,16 @@ export default function App() {
           </div>
 
           {showAbout ? <About /> : (
-          <div style={{
+          <div className="rows-scroller" style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             padding: "6px 0 10px",
             minHeight: 0,
+            overflowY: "auto",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
           }}>
             {TREES.map((t, idx) => {
               const caption = { 0: "First Pair", 2: "Second Pair", 4: "Third Pair", 6: "Core Triplet" }[idx];

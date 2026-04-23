@@ -2,7 +2,8 @@ import { useRef, useEffect } from "react";
 
 const TILE_W = 190;
 const TILE_MIN_H = 52;
-const LABEL_W = 72;
+const LABEL_W = 84;
+const ROW_MIN_H = 72;
 
 export default function ProgressionRow({ tree, activeLevel, onLevelChange }) {
   const scrollerRef = useRef(null);
@@ -41,8 +42,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange }) {
     <>
       <style>{`.tile-scroller::-webkit-scrollbar { display: none; }`}</style>
       <div style={{
-        flex: 1,
-        minHeight: 0,
+        flex: `1 0 ${ROW_MIN_H}px`,
         display: "flex",
         flexDirection: "row",
         alignItems: "stretch",
