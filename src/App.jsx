@@ -1,11 +1,42 @@
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { TREES } from "./data/trees";
 import ProgressionRow from "./components/ProgressionRow";
+import About from "./components/About";
+
+const STORAGE_KEY = "homebody.activeLevels.v1";
+
+function loadActiveLevels() {
+  const defaults = Object.fromEntries(TREES.map((t) => [t.id, 0]));
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaults;
+    const saved = JSON.parse(raw);
+    // Overlay saved values onto defaults so new/removed trees don't break the shape,
+    // and clamp in case a progression got shorter.
+    return Object.fromEntries(
+      TREES.map((t) => {
+        const v = saved?.[t.id];
+        const maxIdx = t.nodes.length - 1;
+        const level = Number.isInteger(v) && v >= 0 && v <= maxIdx ? v : 0;
+        return [t.id, level];
+      })
+    );
+  } catch {
+    return defaults;
+  }
+}
 
 export default function App() {
-  const [activeLevels, setActiveLevels] = useState(
-    Object.fromEntries(TREES.map((t) => [t.id, 0]))
-  );
+  const [activeLevels, setActiveLevels] = useState(loadActiveLevels);
+  const [showAbout, setShowAbout] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(activeLevels));
+    } catch {
+      // Quota exceeded or storage disabled — nothing to do.
+    }
+  }, [activeLevels]);
 
   return (
     <>
@@ -42,6 +73,9 @@ export default function App() {
             background: "#f7f4ef",
             borderBottom: "1px solid #e8e2d8",
             flexShrink: 0,
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
           }}>
             <span style={{
               fontSize: "18px",
@@ -51,17 +85,27 @@ export default function App() {
             }}>
               Homebody
             </span>
-            <span style={{
-              fontSize: "11px",
-              fontWeight: 400,
-              color: "#a09888",
-              marginLeft: "8px",
-              letterSpacing: "0.3px",
-            }}>
-              Strength Training At Home
-            </span>
+            <button
+              type="button"
+              onClick={() => setShowAbout((v) => !v)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: "4px 0",
+                cursor: "pointer",
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "#6a85a0",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+              }}
+            >
+              {showAbout ? "Back" : "About"}
+            </button>
           </div>
 
+          {showAbout ? <About /> : (
           <div style={{
             flex: 1,
             display: "flex",
@@ -108,6 +152,7 @@ export default function App() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
     </>
