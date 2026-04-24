@@ -4,22 +4,20 @@ const TILE_W = 190;
 const TILE_MIN_H = 52;
 const LABEL_W = 84;
 const ROW_MIN_H = 72;
-const RIGHT_FADE = 76;
-// Tiles center in the space *to the right of the name*. Leading/trailing spacers
-// size themselves against the scroller width so tile[0] can reach center when
-// scrollLeft=0 and tile[last] can reach it at max scroll.
-const LEADING_SPACER = `calc((100% - ${TILE_W - LABEL_W + 16}px) / 2)`;
-const TRAILING_SPACER = `calc((100% - ${TILE_W + LABEL_W + 16}px) / 2)`;
+// Gap between tiles. Wide enough that the right chevron (which sits just past
+// the active tile) doesn't overlap the next tile.
+const GAP = 32;
+// Symmetric spacers center tile[0] and tile[last] in the viewport at the scroll extremes.
+const SPACER = `calc(50% - ${TILE_W / 2 + GAP}px)`;
 
-// Left edge: fully transparent through the name area so the previous tile never
-// shows under the row name; then a short ramp to opaque. Right edge: soft multi-stop fade.
+// Previous tiles fully hidden (alpha=0 up to just before the active tile).
+// Active tile opaque. Past the active tile, fades so the next tile shows faded.
 const EDGE_FADE_MASK = `linear-gradient(to right, ` +
   `rgba(0,0,0,0) 0, ` +
-  `rgba(0,0,0,0) ${LABEL_W}px, ` +
-  `rgba(0,0,0,1) ${LABEL_W + 8}px, ` +
-  `rgba(0,0,0,1) calc(100% - ${RIGHT_FADE}px), ` +
-  `rgba(0,0,0,0.55) calc(100% - ${RIGHT_FADE - 8}px), ` +
-  `rgba(0,0,0,0.18) calc(100% - ${RIGHT_FADE / 2}px), ` +
+  `rgba(0,0,0,0) calc(50% - ${TILE_W / 2 + GAP}px), ` +
+  `rgba(0,0,0,1) calc(50% - ${TILE_W / 2}px), ` +
+  `rgba(0,0,0,1) calc(50% + ${TILE_W / 2}px), ` +
+  `rgba(0,0,0,0.6) calc(50% + ${TILE_W / 2 + GAP}px), ` +
   `rgba(0,0,0,0) 100%)`;
 
 export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpenInstructions }) {
@@ -27,16 +25,15 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
   const tileRefs = useRef([]);
   const rafRef = useRef(null);
 
-  // On mount, center the initial active tile in the padded snap area (the
-  // region to the right of the name overlay). Set scrollLeft directly rather
-  // than scrollIntoView so we never perturb the vertical scroll position of
-  // the rows column above us.
+  // On mount, center the initial active tile in the viewport without animation.
+  // Set scrollLeft directly rather than scrollIntoView so we never perturb the
+  // vertical scroll position of the rows column above us.
   useEffect(() => {
     const scroller = scrollerRef.current;
     const tile = tileRefs.current[activeLevel];
     if (!scroller || !tile) return;
     const scrollerRect = scroller.getBoundingClientRect();
-    const targetTileLeft = scrollerRect.left + (LABEL_W + scrollerRect.width - TILE_W) / 2;
+    const targetTileLeft = scrollerRect.left + (scrollerRect.width - TILE_W) / 2;
     scroller.scrollLeft += tile.getBoundingClientRect().left - targetTileLeft;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -48,13 +45,13 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
       const scroller = scrollerRef.current;
       if (!scroller) return;
       const scrollerRect = scroller.getBoundingClientRect();
-      const paddedCenter = scrollerRect.left + (LABEL_W + scrollerRect.width) / 2;
+      const scrollerCenter = scrollerRect.left + scrollerRect.width / 2;
       let closest = 0;
       let closestDist = Infinity;
       tileRefs.current.forEach((tile, i) => {
         if (!tile) return;
         const rect = tile.getBoundingClientRect();
-        const dist = Math.abs(rect.left + rect.width / 2 - paddedCenter);
+        const dist = Math.abs(rect.left + rect.width / 2 - scrollerCenter);
         if (dist < closestDist) {
           closestDist = dist;
           closest = i;
@@ -63,6 +60,15 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
       if (closest !== activeLevel) onLevelChange(tree.id, closest);
     });
   };
+
+  const stepTo = (level) => {
+    const tile = tileRefs.current[level];
+    if (!tile) return;
+    tile.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  };
+
+  const canGoPrev = activeLevel > 0;
+  const canGoNext = activeLevel < tree.nodes.length - 1;
 
   return (
     <>
@@ -83,11 +89,10 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
             minWidth: 0,
             display: "flex",
             alignItems: "stretch",
-            gap: "8px",
+            gap: `${GAP}px`,
             overflowX: "auto",
             overflowY: "hidden",
             scrollSnapType: "x mandatory",
-            scrollPaddingLeft: `${LABEL_W}px`,
             scrollbarWidth: "none",
             msOverflowStyle: "none",
             WebkitOverflowScrolling: "touch",
@@ -97,8 +102,8 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
             WebkitMaskImage: EDGE_FADE_MASK,
           }}
         >
-          {/* Leading spacer lets tile[0] reach the padded-center snap point at scrollLeft = 0. */}
-          <div style={{ flex: `0 0 ${LEADING_SPACER}` }} aria-hidden />
+          {/* Leading spacer lets tile[0] reach the viewport center at scrollLeft = 0. */}
+          <div style={{ flex: `0 0 ${SPACER}` }} aria-hidden />
           {tree.nodes.map((ex, i) => {
             const isSelected = i === activeLevel;
             return (
@@ -179,8 +184,8 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
               </div>
             );
           })}
-          {/* Trailing spacer lets tile[last] reach the padded-center snap point at max scroll. */}
-          <div style={{ flex: `0 0 ${TRAILING_SPACER}` }} aria-hidden />
+          {/* Trailing spacer lets tile[last] reach the viewport center at max scroll. */}
+          <div style={{ flex: `0 0 ${SPACER}` }} aria-hidden />
         </div>
         <div style={{
           position: "absolute",
@@ -201,7 +206,61 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
         }}>
           {tree.name}
         </div>
+        {canGoPrev && (
+          <button
+            type="button"
+            aria-label="Previous progression"
+            onClick={() => stepTo(activeLevel - 1)}
+            style={chevronStyle({ side: "left", color: tree.color })}
+          >
+            <Chevron direction="left" />
+          </button>
+        )}
+        {canGoNext && (
+          <button
+            type="button"
+            aria-label="Next progression"
+            onClick={() => stepTo(activeLevel + 1)}
+            style={chevronStyle({ side: "right", color: tree.color })}
+          >
+            <Chevron direction="right" />
+          </button>
+        )}
       </div>
     </>
+  );
+}
+
+function chevronStyle({ side, color }) {
+  // Left chevron sits just to the left of the active tile (in the empty space
+  // past the row name). Right chevron sits just inside the faded next tile.
+  const leftOffset = `calc(50% - ${TILE_W / 2 + 28}px)`;
+  const rightOffset = `calc(50% + ${TILE_W / 2 + 6}px)`;
+  return {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    left: side === "left" ? leftOffset : rightOffset,
+    width: "22px",
+    height: "22px",
+    border: "none",
+    background: "transparent",
+    color,
+    opacity: 0.7,
+    cursor: "pointer",
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  };
+}
+
+function Chevron({ direction }) {
+  const d = direction === "left" ? "M7.5 2.5L3.5 6.5L7.5 10.5" : "M4.5 2.5L8.5 6.5L4.5 10.5";
+  return (
+    <svg width="12" height="13" viewBox="0 0 12 13" fill="none" aria-hidden>
+      <path d={d} stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
