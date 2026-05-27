@@ -65,19 +65,16 @@ export default function App() {
         overflow: "hidden",
       }}>
         <div style={{
-          maxWidth: "480px",
-          margin: "0 auto",
+          background: "#f7f4ef",
+          borderBottom: "1px solid #e8e2d8",
+          flexShrink: 0,
           width: "100%",
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
         }}>
           <div style={{
+            maxWidth: "480px",
+            margin: "0 auto",
+            width: "100%",
             padding: "14px 18px 12px",
-            background: "#f7f4ef",
-            borderBottom: "1px solid #e8e2d8",
-            flexShrink: 0,
             display: "flex",
             alignItems: "baseline",
             justifyContent: "space-between",
@@ -132,7 +129,16 @@ export default function App() {
               </button>
             )}
           </div>
-
+        </div>
+        <div style={{
+          maxWidth: "480px",
+          margin: "0 auto",
+          width: "100%",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+        }}>
           {showAbout ? <About /> : (
           <div className="rows-scroller" style={{
             flex: 1,
