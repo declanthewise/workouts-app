@@ -82,35 +82,15 @@ export default function App() {
             alignItems: "baseline",
             justifyContent: "space-between",
           }}>
-            <span style={{
-              fontSize: "18px",
-              fontWeight: showAbout ? 500 : 600,
-              fontFamily: "'Fraunces', serif",
-              color: "#3a352e",
-            }}>
-              {showAbout ? "About" : "Homebody"}
-            </span>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "16px" }}>
-              {!showAbout && (
-                <button
-                  type="button"
-                  onClick={() => setWorkoutActive(true)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: "4px 0",
-                    cursor: "pointer",
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    color: "#7f9870",
-                    textDecoration: "underline",
-                    textUnderlineOffset: "3px",
-                  }}
-                >
-                  Start
-                </button>
-              )}
+            <div style={{ display: "flex", alignItems: "baseline", gap: "14px" }}>
+              <span style={{
+                fontSize: "18px",
+                fontWeight: showAbout ? 500 : 600,
+                fontFamily: "'Fraunces', serif",
+                color: "#3a352e",
+              }}>
+                {showAbout ? "About" : "Homebody"}
+              </span>
               <button
                 type="button"
                 onClick={() => setShowAbout((v) => !v)}
@@ -130,6 +110,27 @@ export default function App() {
                 {showAbout ? "Back" : "About"}
               </button>
             </div>
+            {!showAbout && (
+              <button
+                type="button"
+                onClick={() => setWorkoutActive(true)}
+                style={{
+                  background: "#7f9870",
+                  border: "none",
+                  padding: "7px 16px",
+                  borderRadius: "999px",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  letterSpacing: "0.3px",
+                  color: "#fff",
+                  boxShadow: "0 1px 2px rgba(40,30,20,0.12)",
+                }}
+              >
+                Start workout
+              </button>
+            )}
           </div>
 
           {showAbout ? <About /> : (
