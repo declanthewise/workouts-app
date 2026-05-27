@@ -3,6 +3,7 @@ import { TREES } from "./data/trees";
 import ProgressionRow from "./components/ProgressionRow";
 import About from "./components/About";
 import Instructions from "./components/Instructions";
+import Workout from "./components/Workout";
 
 const STORAGE_KEY = "homebody.activeLevels.v1";
 
@@ -31,6 +32,7 @@ export default function App() {
   const [activeLevels, setActiveLevels] = useState(loadActiveLevels);
   const [showAbout, setShowAbout] = useState(false);
   const [openExercise, setOpenExercise] = useState(null);
+  const [workoutActive, setWorkoutActive] = useState(false);
 
   useEffect(() => {
     try {
@@ -88,24 +90,46 @@ export default function App() {
             }}>
               {showAbout ? "About" : "Homebody"}
             </span>
-            <button
-              type="button"
-              onClick={() => setShowAbout((v) => !v)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: "4px 0",
-                cursor: "pointer",
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: "13px",
-                fontWeight: 500,
-                color: "#6a85a0",
-                textDecoration: "underline",
-                textUnderlineOffset: "3px",
-              }}
-            >
-              {showAbout ? "Back" : "About"}
-            </button>
+            <div style={{ display: "flex", alignItems: "baseline", gap: "16px" }}>
+              {!showAbout && (
+                <button
+                  type="button"
+                  onClick={() => setWorkoutActive(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: "4px 0",
+                    cursor: "pointer",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: "13px",
+                    fontWeight: 600,
+                    color: "#7f9870",
+                    textDecoration: "underline",
+                    textUnderlineOffset: "3px",
+                  }}
+                >
+                  Start
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowAbout((v) => !v)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: "4px 0",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  color: "#6a85a0",
+                  textDecoration: "underline",
+                  textUnderlineOffset: "3px",
+                }}
+              >
+                {showAbout ? "Back" : "About"}
+              </button>
+            </div>
           </div>
 
           {showAbout ? <About /> : (
@@ -165,6 +189,12 @@ export default function App() {
         </div>
       </div>
       <Instructions exercise={openExercise} onClose={() => setOpenExercise(null)} />
+      {workoutActive && (
+        <Workout
+          activeLevels={activeLevels}
+          onClose={() => setWorkoutActive(false)}
+        />
+      )}
     </>
   );
 }
