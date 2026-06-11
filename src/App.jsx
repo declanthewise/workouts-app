@@ -231,6 +231,8 @@ export default function App() {
               disabled={!isHome}
               style={{
                 flexShrink: 0,
+                position: "relative",
+                zIndex: 1,
                 background: isHome ? "#7f9870" : "#e6e1d7",
                 border: "none",
                 padding: "7px 16px",
