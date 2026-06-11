@@ -6,10 +6,12 @@ import About from "./components/About";
 import MyGym from "./components/MyGym";
 import Instructions from "./components/Instructions";
 import EquipmentPrompt from "./components/EquipmentPrompt";
+import Welcome from "./components/Welcome";
 import Workout from "./components/Workout";
 
 const STORAGE_KEY = "homebody.activeLevels.v1";
 const EQUIP_KEY = "homebody.equipment.v1";
+const WELCOME_KEY = "homebody.welcomed.v1";
 
 function loadActiveLevels() {
   const defaults = Object.fromEntries(TREES.map((t) => [t.id, 0]));
@@ -80,6 +82,22 @@ export default function App() {
   const [openExercise, setOpenExercise] = useState(null);
   const [equipPrompt, setEquipPrompt] = useState(null); // { treeId, nodeIndex, node }
   const [workoutActive, setWorkoutActive] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try {
+      return !localStorage.getItem(WELCOME_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  const dismissWelcome = () => {
+    try {
+      localStorage.setItem(WELCOME_KEY, "1");
+    } catch {
+      // Storage disabled — it'll just show again next visit.
+    }
+    setShowWelcome(false);
+  };
 
   useEffect(() => {
     try {
@@ -274,6 +292,7 @@ export default function App() {
           )}
         </div>
       </div>
+      <Welcome open={showWelcome} onClose={dismissWelcome} />
       <Instructions exercise={openExercise} onClose={() => setOpenExercise(null)} />
       <EquipmentPrompt
         prompt={equipPrompt}
