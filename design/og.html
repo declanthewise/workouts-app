@@ -13,40 +13,53 @@
     position: relative;
     overflow: hidden;
   }
-  .bar { position: absolute; top: 0; left: 0; right: 0; height: 12px; background: #7f9870; }
-  .pad { padding: 96px 90px 80px; height: 100%; display: flex; flex-direction: column; }
+  .pad {
+    padding: 96px 90px 80px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 64px;
+  }
+  .content { display: flex; flex-direction: column; }
+  h1 {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 124px;
+    line-height: 1; color: #3a352e;
+  }
   .eyebrow {
     font-size: 24px; font-weight: 700; letter-spacing: 6px;
-    text-transform: uppercase; color: #a09888;
+    text-transform: uppercase; color: #a09888; margin-top: 26px;
   }
-  h1 {
-    font-family: 'Fraunces', serif; font-weight: 700; font-size: 150px;
-    line-height: 1; margin: 22px 0 28px; color: #3a352e;
-  }
-  .tagline { font-size: 38px; line-height: 1.35; color: #5a5248; max-width: 880px; }
-  .pills { display: flex; gap: 18px; margin-top: auto; }
-  .pill { width: 150px; height: 56px; border-radius: 14px; }
-  .domain {
-    position: absolute; right: 90px; bottom: 40px;
-    font-size: 24px; color: #a09888;
-  }
+  .pills { display: flex; flex-direction: column; gap: 28px; flex: 0 0 auto; }
+  .group { display: flex; flex-direction: column; gap: 12px; }
+  .pill { width: 220px; height: 36px; border-radius: 12px; }
 </style>
 </head>
 <body>
-  <div class="bar"></div>
   <div class="pad">
-    <div class="eyebrow">Bodyweight Fitness · At Home</div>
-    <h1>Homebody</h1>
-    <div class="tagline">A visual cheat sheet for the r/bodyweightfitness Recommended Routine.</div>
+    <div class="content">
+      <h1>Homebody</h1>
+      <div class="eyebrow">Bodyweight Fitness · At Home</div>
+    </div>
     <div class="pills">
-      <div class="pill" style="background:#6a85a0"></div>
-      <div class="pill" style="background:#6a85a0"></div>
-      <div class="pill" style="background:#7f9870"></div>
-      <div class="pill" style="background:#7f9870"></div>
-      <div class="pill" style="background:#b08a68"></div>
-      <div class="pill" style="background:#b08a68"></div>
+      <div class="group">
+        <div class="pill" style="background:#6a85a0"></div>
+        <div class="pill" style="background:#6a85a0"></div>
+      </div>
+      <div class="group">
+        <div class="pill" style="background:#7f9870"></div>
+        <div class="pill" style="background:#7f9870"></div>
+      </div>
+      <div class="group">
+        <div class="pill" style="background:#b08a68"></div>
+        <div class="pill" style="background:#b08a68"></div>
+      </div>
+      <div class="group">
+        <div class="pill" style="background:#9b8d7a"></div>
+        <div class="pill" style="background:#9b8d7a"></div>
+        <div class="pill" style="background:#9b8d7a"></div>
+      </div>
     </div>
   </div>
-  <div class="domain">homebody-app.vercel.app</div>
 </body>
 </html>
