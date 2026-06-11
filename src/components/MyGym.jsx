@@ -1,15 +1,4 @@
-import { TREES } from "../data/trees";
-import { EQUIPMENT, nodeEquipmentIds } from "../data/equipment";
-
-// Progression names each piece of equipment unlocks at least one tile in.
-const UNLOCKS = Object.fromEntries(
-  EQUIPMENT.map((e) => {
-    const names = TREES
-      .filter((t) => t.nodes.some((n) => nodeEquipmentIds(n).includes(e.id)))
-      .map((t) => t.name);
-    return [e.id, names];
-  })
-);
+import { EQUIPMENT } from "../data/equipment";
 
 export default function MyGym({ owned, onToggle }) {
   return (
@@ -28,7 +17,6 @@ export default function MyGym({ owned, onToggle }) {
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {EQUIPMENT.map((e) => {
           const on = owned.has(e.id);
-          const unlocks = UNLOCKS[e.id];
           return (
             <button
               key={e.id}
@@ -66,22 +54,9 @@ export default function MyGym({ owned, onToggle }) {
                   fontSize: "12.5px",
                   lineHeight: 1.45,
                   color: "#7a7264",
-                  marginBottom: unlocks.length ? "6px" : 0,
                 }}>
                   {e.blurb}
                 </span>
-                {unlocks.length > 0 && (
-                  <span style={{
-                    display: "block",
-                    fontSize: "10.5px",
-                    fontWeight: 700,
-                    letterSpacing: "0.6px",
-                    textTransform: "uppercase",
-                    color: "#a09888",
-                  }}>
-                    Unlocks {unlocks.join(" · ")}
-                  </span>
-                )}
               </span>
               <Switch on={on} />
             </button>

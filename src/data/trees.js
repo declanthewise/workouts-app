@@ -33,7 +33,7 @@ export const TREES = [
         "Pull until your chin clears the bar.",
         "Lower under control to a full dead hang.",
       ] },
-      { name: "Weighted Pull-ups", equipment: [["bar"], ["weight"]], steps: [
+      { name: "Weighted Pull-ups", equipment: [["bar"]], steps: [
         "Add load via a dip belt or dumbbell held between the feet.",
         "Pull until your chin clears the bar.",
         "Lower under control to a full dead hang.",

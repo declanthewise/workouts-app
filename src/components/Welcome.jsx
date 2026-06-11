@@ -56,7 +56,7 @@ export default function Welcome({ open, onClose }) {
           Welcome to Homebody
         </h2>
         <p style={{ margin: "0 0 16px", fontSize: "14px", lineHeight: 1.55, color: "#5a5248" }}>
-          A visual cheat sheet for the r/bodyweightfitness Recommended Routine — train it at home, no gym required.
+          A visual cheat sheet for the Reddit Recommended Routine — train it at home, no gym required.
         </p>
         <ul style={{ margin: "0 0 22px", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: "12px" }}>
           <Item color="#6a85a0">Swipe each row to pick the variation you're working on.</Item>

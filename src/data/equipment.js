@@ -3,7 +3,7 @@
 // `article` is the grammatical article for use mid-sentence ("" for plurals).
 export const EQUIPMENT = [
   { id: "bar", name: "Pull-up bar", article: "a", blurb: "A doorway or wall-mounted bar." },
-  { id: "rings", name: "Gymnastic rings", article: "", blurb: "Adjustable straps you can hang high or set low — the single highest-value buy." },
+  { id: "rings", name: "Gymnastic rings", article: "", blurb: "Adjustable straps you can hang high or set low." },
   { id: "parallettes", name: "Parallettes", article: "", blurb: "Low push-up bars for dips and support holds." },
   { id: "band", name: "Resistance band", article: "a", blurb: "A long loop band for assisted pull-ups and presses." },
   { id: "abwheel", name: "Ab wheel", article: "an", blurb: "A wheel with handles for rollouts." },
