@@ -25,10 +25,10 @@ function fade(hex, alpha) {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-function buildQueue(phase) {
+function buildQueue(idxs) {
   const q = [];
   for (let s = 1; s <= SETS; s++) {
-    for (const idx of phase.treeIdxs) q.push(idx);
+    for (const idx of idxs) q.push(idx);
   }
   return q;
 }
@@ -40,7 +40,13 @@ export default function Workout({ activeLevels, onClose }) {
 
   const isComplete = phaseIdx >= PHASES.length;
   const phase = isComplete ? null : PHASES[phaseIdx];
-  const queue = useMemo(() => (phase ? buildQueue(phase) : []), [phase]);
+  // A row whose selected level is null has no unlocked tile for the user's
+  // equipment, so it drops out of the workout entirely.
+  const availableIdxs = useMemo(
+    () => (phase ? phase.treeIdxs.filter((idx) => activeLevels[TREES[idx].id] != null) : []),
+    [phase, activeLevels]
+  );
+  const queue = useMemo(() => buildQueue(availableIdxs), [availableIdxs]);
 
   const restActive = resting !== null;
   useEffect(() => {
@@ -161,7 +167,7 @@ export default function Workout({ activeLevels, onClose }) {
               {phase.name}
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              {phase.treeIdxs.map((idx) => {
+              {availableIdxs.map((idx) => {
                 const tree = TREES[idx];
                 const node = tree.nodes[activeLevels[tree.id]];
                 const count = setsDoneFor(idx);

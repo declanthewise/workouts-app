@@ -1,11 +1,15 @@
 import { useState, useEffect, Fragment } from "react";
 import { TREES } from "./data/trees";
+import { EQUIPMENT_IDS, nodeUnlocked } from "./data/equipment";
 import ProgressionRow from "./components/ProgressionRow";
 import About from "./components/About";
+import MyGym from "./components/MyGym";
 import Instructions from "./components/Instructions";
+import EquipmentPrompt from "./components/EquipmentPrompt";
 import Workout from "./components/Workout";
 
 const STORAGE_KEY = "homebody.activeLevels.v1";
+const EQUIP_KEY = "homebody.equipment.v1";
 
 function loadActiveLevels() {
   const defaults = Object.fromEntries(TREES.map((t) => [t.id, 0]));
@@ -28,10 +32,53 @@ function loadActiveLevels() {
   }
 }
 
+function loadOwned() {
+  try {
+    const raw = localStorage.getItem(EQUIP_KEY);
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return new Set();
+    return new Set(arr.filter((id) => EQUIPMENT_IDS.has(id)));
+  } catch {
+    return new Set();
+  }
+}
+
+// Keep every row's selected level on an unlocked tile for the current equipment.
+// Prefer the nearest unlocked tile at or below the current one; a row with no
+// unlocked tile at all (e.g. Pull-up with no bar) becomes null and is treated as
+// locked everywhere downstream.
+function clampLevels(levels, owned) {
+  const out = {};
+  for (const t of TREES) {
+    const unlocked = t.nodes.map((n, i) => (nodeUnlocked(n, owned) ? i : -1)).filter((i) => i >= 0);
+    if (unlocked.length === 0) {
+      out[t.id] = null;
+      continue;
+    }
+    const cur = levels[t.id];
+    if (cur != null && unlocked.includes(cur)) {
+      out[t.id] = cur;
+      continue;
+    }
+    if (cur == null) {
+      // Row just became available — start at the easiest unlocked tile.
+      out[t.id] = unlocked[0];
+      continue;
+    }
+    // Current selection got locked — fall back to the nearest unlocked tile below it.
+    const below = unlocked.filter((i) => i <= cur);
+    out[t.id] = below.length ? below[below.length - 1] : unlocked[0];
+  }
+  return out;
+}
+
 export default function App() {
-  const [activeLevels, setActiveLevels] = useState(loadActiveLevels);
-  const [showAbout, setShowAbout] = useState(false);
+  const [owned, setOwned] = useState(loadOwned);
+  const [activeLevels, setActiveLevels] = useState(() => clampLevels(loadActiveLevels(), loadOwned()));
+  const [view, setView] = useState("home"); // "home" | "about" | "gym"
   const [openExercise, setOpenExercise] = useState(null);
+  const [equipPrompt, setEquipPrompt] = useState(null); // { treeId, nodeIndex, node }
   const [workoutActive, setWorkoutActive] = useState(false);
 
   useEffect(() => {
@@ -41,6 +88,39 @@ export default function App() {
       // Quota exceeded or storage disabled — nothing to do.
     }
   }, [activeLevels]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(EQUIP_KEY, JSON.stringify([...owned]));
+    } catch {
+      // Quota exceeded or storage disabled — nothing to do.
+    }
+    // Re-clamp selections whenever ownership changes so nothing sits on a locked tile.
+    setActiveLevels((prev) => clampLevels(prev, owned));
+  }, [owned]);
+
+  const toggleEquipment = (id) => {
+    setOwned((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  // Confirming a locked tile's gear adds the chosen equipment, and selects that
+  // tile as the row's level only if the added gear actually unlocks it.
+  const confirmEquipment = (treeId, nodeIndex, node, addIds) => {
+    const nextOwned = new Set(owned);
+    addIds.forEach((id) => nextOwned.add(id));
+    setOwned(nextOwned);
+    if (nodeUnlocked(node, nextOwned)) {
+      setActiveLevels((prev) => ({ ...prev, [treeId]: nodeIndex }));
+    }
+  };
+
+  const isHome = view === "home";
+  const title = view === "about" ? "About" : view === "gym" ? "My Gym" : "Homebody";
 
   return (
     <>
@@ -83,30 +163,22 @@ export default function App() {
             <div style={{ display: "flex", alignItems: "baseline", gap: "14px" }}>
               <span style={{
                 fontSize: "18px",
-                fontWeight: showAbout ? 500 : 600,
+                fontWeight: isHome ? 600 : 500,
                 fontFamily: "'Fraunces', serif",
                 color: "#3a352e",
               }}>
-                {showAbout ? "About" : "Homebody"}
+                {title}
               </span>
-              <button
-                type="button"
-                onClick={() => setShowAbout((v) => !v)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "4px 0",
-                  cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: "#6a85a0",
-                }}
-              >
-                {showAbout ? "Back" : "About"}
-              </button>
+              {isHome ? (
+                <>
+                  <NavLink onClick={() => setView("about")}>About</NavLink>
+                  <NavLink onClick={() => setView("gym")}>My Gym</NavLink>
+                </>
+              ) : (
+                <NavLink onClick={() => setView("home")}>Back</NavLink>
+              )}
             </div>
-            {!showAbout && (
+            {isHome && (
               <button
                 type="button"
                 onClick={() => setWorkoutActive(true)}
@@ -138,7 +210,11 @@ export default function App() {
           flexDirection: "column",
           minHeight: 0,
         }}>
-          {showAbout ? <About /> : (
+          {view === "about" ? (
+            <About />
+          ) : view === "gym" ? (
+            <MyGym owned={owned} onToggle={toggleEquipment} />
+          ) : (
           <div className="rows-scroller" style={{
             flex: 1,
             display: "flex",
@@ -180,12 +256,16 @@ export default function App() {
                   <ProgressionRow
                     tree={t}
                     activeLevel={activeLevels[t.id]}
+                    owned={owned}
                     onLevelChange={(treeId, level) =>
                       setActiveLevels((prev) =>
                         prev[treeId] === level ? prev : { ...prev, [treeId]: level }
                       )
                     }
                     onOpenInstructions={setOpenExercise}
+                    onRequestEquipment={(treeId, nodeIndex, node) =>
+                      setEquipPrompt({ treeId, nodeIndex, node })
+                    }
                   />
                 </Fragment>
               );
@@ -195,6 +275,15 @@ export default function App() {
         </div>
       </div>
       <Instructions exercise={openExercise} onClose={() => setOpenExercise(null)} />
+      <EquipmentPrompt
+        prompt={equipPrompt}
+        owned={owned}
+        onConfirm={(addIds) => {
+          confirmEquipment(equipPrompt.treeId, equipPrompt.nodeIndex, equipPrompt.node, addIds);
+          setEquipPrompt(null);
+        }}
+        onClose={() => setEquipPrompt(null)}
+      />
       {workoutActive && (
         <Workout
           activeLevels={activeLevels}
@@ -202,5 +291,26 @@ export default function App() {
         />
       )}
     </>
+  );
+}
+
+function NavLink({ onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        background: "none",
+        border: "none",
+        padding: "4px 0",
+        cursor: "pointer",
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: "13px",
+        fontWeight: 500,
+        color: "#6a85a0",
+      }}
+    >
+      {children}
+    </button>
   );
 }

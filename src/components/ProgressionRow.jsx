@@ -1,4 +1,5 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
+import { nodeUnlocked } from "../data/equipment";
 
 const TILE_W = 190;
 const TILE_MIN_H = 52;
@@ -20,10 +21,15 @@ const EDGE_FADE_MASK = `linear-gradient(to right, ` +
   `rgba(0,0,0,0.6) calc(50% + ${TILE_W / 2 + GAP}px), ` +
   `rgba(0,0,0,0) 100%)`;
 
-export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpenInstructions }) {
+export default function ProgressionRow({ tree, activeLevel, owned, onLevelChange, onOpenInstructions, onRequestEquipment }) {
   const scrollerRef = useRef(null);
   const tileRefs = useRef([]);
   const rafRef = useRef(null);
+  // The tile currently in the center column (locked or not) — drives the chevrons,
+  // which step one tile at a time so grayed tiles stay reachable.
+  const [centered, setCentered] = useState(activeLevel ?? 0);
+
+  const unlocked = tree.nodes.map((n) => nodeUnlocked(n, owned));
 
   // On mount, center the initial active tile in the viewport without animation.
   // Set scrollLeft directly rather than scrollIntoView so we never perturb the
@@ -46,7 +52,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
       if (!scroller) return;
       const scrollerRect = scroller.getBoundingClientRect();
       const scrollerCenter = scrollerRect.left + scrollerRect.width / 2;
-      let closest = 0;
+      let closest = -1;
       let closestDist = Infinity;
       tileRefs.current.forEach((tile, i) => {
         if (!tile) return;
@@ -57,7 +63,13 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
           closest = i;
         }
       });
-      if (closest !== activeLevel) onLevelChange(tree.id, closest);
+      if (closest < 0) return;
+      setCentered(closest);
+      // Locked tiles can be centered for visibility, but only an unlocked tile
+      // becomes the selected level.
+      if (unlocked[closest] && closest !== activeLevel) {
+        onLevelChange(tree.id, closest);
+      }
     });
   };
 
@@ -67,8 +79,9 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
     tile.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   };
 
-  const canGoPrev = activeLevel > 0;
-  const canGoNext = activeLevel < tree.nodes.length - 1;
+  // Chevrons step through every tile (including grayed ones) for visibility.
+  const canGoPrev = centered > 0;
+  const canGoNext = centered < tree.nodes.length - 1;
 
   return (
     <>
@@ -106,6 +119,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
           <div style={{ flex: `0 0 ${SPACER}` }} aria-hidden />
           {tree.nodes.map((ex, i) => {
             const isSelected = i === activeLevel;
+            const isLocked = !unlocked[i];
             return (
               <div
                 key={i}
@@ -125,19 +139,22 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
                       inline: "center", block: "nearest", behavior: "smooth",
                     });
                   }}
+                  aria-label={ex.name}
                   style={{
+                    position: "relative",
                     flex: 1,
                     minWidth: 0,
                     padding: "10px 14px",
                     borderRadius: "12px",
                     background: "#fff",
-                    color: "#3a352e",
                     border: "none",
                     boxShadow: isSelected
                       ? `inset 4px 0 0 ${tree.color}, 0 3px 8px rgba(40,30,20,0.10)`
                       : "0 1px 2px rgba(40,30,20,0.04)",
                     display: "flex",
-                    alignItems: "center",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    alignItems: "flex-start",
                     fontFamily: "'DM Sans', sans-serif",
                     cursor: "pointer",
                     textAlign: "left",
@@ -149,12 +166,13 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
                     fontWeight: isSelected ? 600 : 500,
                     lineHeight: 1.2,
                     minWidth: 0,
-                    paddingRight: isSelected ? "24px" : 0,
+                    paddingRight: (isSelected || isLocked) ? "24px" : 0,
+                    color: isLocked ? "#b0a89b" : "#3a352e",
                   }}>
                     {ex.name}
                   </span>
                 </button>
-                {isSelected && (
+                {isSelected && !isLocked && (
                   <button
                     type="button"
                     aria-label={`How to do ${ex.name}`}
@@ -179,6 +197,32 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
                     }}
                   >
                     ⋯
+                  </button>
+                )}
+                {isLocked && (
+                  <button
+                    type="button"
+                    aria-label={`Add equipment for ${ex.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRequestEquipment(tree.id, i, ex);
+                    }}
+                    style={{
+                      position: "absolute",
+                      top: "2px",
+                      right: "4px",
+                      padding: "2px 8px",
+                      background: "none",
+                      border: "none",
+                      color: tree.color,
+                      cursor: "pointer",
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: "22px",
+                      fontWeight: 400,
+                      lineHeight: 1,
+                    }}
+                  >
+                    +
                   </button>
                 )}
               </div>
@@ -210,7 +254,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
           <button
             type="button"
             aria-label="Previous progression"
-            onClick={() => stepTo(activeLevel - 1)}
+            onClick={() => stepTo(centered - 1)}
             style={chevronStyle({ side: "left", color: tree.color })}
           >
             <Chevron direction="left" />
@@ -220,7 +264,7 @@ export default function ProgressionRow({ tree, activeLevel, onLevelChange, onOpe
           <button
             type="button"
             aria-label="Next progression"
-            onClick={() => stepTo(activeLevel + 1)}
+            onClick={() => stepTo(centered + 1)}
             style={chevronStyle({ side: "right", color: tree.color })}
           >
             <Chevron direction="right" />

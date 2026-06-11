@@ -1,32 +1,39 @@
 // Progressions from the r/bodyweightfitness Recommended Routine.
 // Order: 6 strength pairs (Pull-up/Squat, Dip/Hinge, Row/Push-up) then 3 core.
+// `equipment` (CNF — see data/equipment.js) gates a node until the user confirms
+// they own the gear; nodes without it are bodyweight and always available.
 export const TREES = [
   {
     id: "pullup",
     name: "Pull-up",
     color: "#6a85a0",
     nodes: [
-      { name: "Scapular Pulls", steps: [
+      { name: "Scapular Pulls", equipment: [["bar"]], steps: [
         "Hang from the bar with straight arms.",
         "Without bending your elbows, pull your shoulder blades down and together.",
         "Release slowly back to a dead hang.",
       ] },
-      { name: "Arch Hangs", steps: [
+      { name: "Arch Hangs", equipment: [["bar"]], steps: [
         "Hang from the bar, shoulders active.",
         "Pull your chest toward the bar without bending your elbows.",
         "Hold the arched position, then lower under control.",
       ] },
-      { name: "Negative Pull-ups", steps: [
+      { name: "Negative Pull-ups", equipment: [["bar"]], steps: [
         "Jump or step up so your chin is over the bar.",
         "Lower yourself as slowly as possible — aim for 5+ seconds.",
         "Reset and repeat.",
       ] },
-      { name: "Pull-ups", steps: [
+      { name: "Band-assisted Pull-ups", equipment: [["bar"], ["band"]], steps: [
+        "Loop a resistance band over the bar and step (or kneel) into it.",
+        "Pull until your chin clears the bar, letting the band help at the bottom.",
+        "Lower under control. Use a thinner band as you get stronger.",
+      ] },
+      { name: "Pull-ups", equipment: [["bar"]], steps: [
         "Hang from the bar, hands just wider than shoulders.",
         "Pull until your chin clears the bar.",
         "Lower under control to a full dead hang.",
       ] },
-      { name: "Weighted Pull-ups", steps: [
+      { name: "Weighted Pull-ups", equipment: [["bar"], ["weight"]], steps: [
         "Add load via a dip belt or dumbbell held between the feet.",
         "Pull until your chin clears the bar.",
         "Lower under control to a full dead hang.",
@@ -80,22 +87,22 @@ export const TREES = [
     name: "Dip",
     color: "#7f9870",
     nodes: [
-      { name: "Parallel Bar Support Hold", steps: [
+      { name: "Parallel Bar Support Hold", equipment: [["parallettes", "rings"]], steps: [
         "Grip parallel bars, press up to fully straight arms.",
         "Pack shoulders down, brace core, point toes.",
         "Hold for time.",
       ] },
-      { name: "Negative Dips", steps: [
+      { name: "Negative Dips", equipment: [["parallettes", "rings"]], steps: [
         "Start at the top with straight arms.",
         "Lower slowly until shoulders dip below elbows — aim for 3–5 seconds.",
         "Use legs to return to the top and repeat.",
       ] },
-      { name: "Parallel Bar Dips", steps: [
+      { name: "Parallel Bar Dips", equipment: [["parallettes", "rings"]], steps: [
         "Support yourself on parallel bars, arms straight.",
         "Lower until shoulders drop below elbows.",
         "Press back up to fully straight arms.",
       ] },
-      { name: "Ring Dips", steps: [
+      { name: "Ring Dips", equipment: [["rings"]], steps: [
         "Support on rings with arms straight, rings turned slightly out.",
         "Lower until shoulders drop below elbows, keeping rings close.",
         "Press up and turn the rings outward at the top.",
@@ -107,7 +114,7 @@ export const TREES = [
     name: "Hinge",
     color: "#7f9870",
     nodes: [
-      { name: "Romanian Deadlift", steps: [
+      { name: "Romanian Deadlift", equipment: [["weight"]], steps: [
         "Stand holding a weight, feet hip-width, slight knee bend.",
         "Hinge at the hips, pushing them back, keeping the back flat.",
         "Drive hips forward to stand, squeezing glutes at the top.",
@@ -117,7 +124,7 @@ export const TREES = [
         "Hinge forward, extending the free leg straight behind for counterbalance.",
         "Return to standing. Switch legs.",
       ] },
-      { name: "Banded Nordic Curl", steps: [
+      { name: "Banded Nordic Curl", equipment: [["band"]], steps: [
         "Kneel with ankles anchored; loop a band across your chest, anchored in front.",
         "Keeping hips extended, lower torso toward the floor.",
         "Pull with your hamstrings to return upright.",
@@ -134,27 +141,27 @@ export const TREES = [
     name: "Row",
     color: "#b08a68",
     nodes: [
-      { name: "Vertical Rows", steps: [
+      { name: "Vertical Rows", equipment: [["bar", "rings"]], steps: [
         "Grip a bar at chest height, lean back slightly with feet close.",
         "Keeping body rigid, pull chest toward your hands.",
         "Lower under control, arms fully straight.",
       ] },
-      { name: "Incline Rows", steps: [
+      { name: "Incline Rows", equipment: [["bar", "rings"]], steps: [
         "Grip a bar or rings at about hip height, body inclined.",
         "Pull chest to the bar, squeezing shoulder blades together.",
         "Lower slowly, arms fully extended.",
       ] },
-      { name: "Horizontal Rows", steps: [
+      { name: "Horizontal Rows", equipment: [["bar", "rings"]], steps: [
         "Set bar or rings so your body is parallel to the floor when hanging.",
         "Pull chest to your hands while keeping the body rigid.",
         "Lower under control to straight arms.",
       ] },
-      { name: "Wide Rows", steps: [
+      { name: "Wide Rows", equipment: [["bar", "rings"]], steps: [
         "Grip the bar or rings wider than shoulder-width, body horizontal.",
         "Pull with elbows flared out to around 90°.",
         "Lower slowly, arms fully extended.",
       ] },
-      { name: "Archer Rows", steps: [
+      { name: "Archer Rows", equipment: [["rings"]], steps: [
         "Hang from rings with body horizontal.",
         "Pull toward one ring while the other arm straightens out to the side.",
         "Lower with control, then repeat to the opposite side.",
@@ -203,12 +210,12 @@ export const TREES = [
         "Squeeze glutes and brace abs so your hips don't sag or pike.",
         "Hold for time, breathing normally.",
       ] },
-      { name: "Ring Ab Rollouts", steps: [
+      { name: "Ring Ab Rollouts", equipment: [["rings"]], steps: [
         "Kneel holding rings at shoulder height, arms straight.",
         "Roll the rings forward overhead, body straight.",
         "Pull the rings back in with your abs.",
       ] },
-      { name: "Ab Wheel Rollouts", steps: [
+      { name: "Ab Wheel Rollouts", equipment: [["abwheel"]], steps: [
         "Kneel holding an ab wheel, arms straight.",
         "Roll forward as far as you can keep a flat back.",
         "Contract your abs to roll back to the start.",
@@ -220,12 +227,12 @@ export const TREES = [
     name: "Anti-Rotation",
     color: "#9b8d7a",
     nodes: [
-      { name: "Banded Pallof Press", steps: [
+      { name: "Banded Pallof Press", equipment: [["band"]], steps: [
         "Stand side-on to an anchored band, holding it at your chest with both hands.",
         "Press the band straight out, resisting the twist toward the anchor.",
         "Return slowly to your chest. Switch sides.",
       ] },
-      { name: "Ring Pallof Press", steps: [
+      { name: "Ring Pallof Press", equipment: [["rings"]], steps: [
         "Kneel or stand perpendicular to a ring anchor, holding one ring at chest.",
         "Press the ring straight out, resisting body rotation.",
         "Return under control. Switch sides.",
