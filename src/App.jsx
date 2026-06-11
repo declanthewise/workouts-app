@@ -74,6 +74,7 @@ export default function App() {
             maxWidth: "480px",
             margin: "0 auto",
             width: "100%",
+            boxSizing: "border-box",
             padding: "14px 18px 12px",
             display: "flex",
             alignItems: "baseline",
