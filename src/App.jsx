@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, forwardRef, Fragment } from "react";
 import { TREES } from "./data/trees";
 import { EQUIPMENT_IDS, nodeUnlocked } from "./data/equipment";
 import ProgressionRow from "./components/ProgressionRow";
@@ -138,7 +138,34 @@ export default function App() {
   };
 
   const isHome = view === "home";
-  const title = view === "about" ? "About" : view === "gym" ? "My Gym" : "Homebody";
+
+  // Sliding underline that glides between the active page's title across the header.
+  const rowRef = useRef(null);
+  const tabRefs = { home: useRef(null), about: useRef(null), gym: useRef(null) };
+  const [indicator, setIndicator] = useState(null);
+
+  const measureIndicator = useCallback(() => {
+    const el = tabRefs[view]?.current;
+    const row = rowRef.current;
+    if (!el || !row) return;
+    const er = el.getBoundingClientRect();
+    const rr = row.getBoundingClientRect();
+    setIndicator({ left: er.left - rr.left, top: er.bottom - rr.top, width: er.width });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  useLayoutEffect(measureIndicator, [measureIndicator]);
+
+  useEffect(() => {
+    window.addEventListener("resize", measureIndicator);
+    let cancelled = false;
+    // Font swap (Fraunces/DM Sans) changes title widths — remeasure once they load.
+    if (document.fonts?.ready) document.fonts.ready.then(() => !cancelled && measureIndicator());
+    return () => {
+      cancelled = true;
+      window.removeEventListener("resize", measureIndicator);
+    };
+  }, [measureIndicator]);
 
   return (
     <>
@@ -168,54 +195,75 @@ export default function App() {
           flexShrink: 0,
           width: "100%",
         }}>
-          <div style={{
+          <div ref={rowRef} style={{
+            position: "relative",
             maxWidth: "480px",
             margin: "0 auto",
             width: "100%",
             boxSizing: "border-box",
             padding: "14px 18px 12px",
             display: "flex",
-            alignItems: "baseline",
-            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "14px",
           }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "14px" }}>
-              <span style={{
-                fontSize: "18px",
-                fontWeight: isHome ? 600 : 500,
-                fontFamily: "'Fraunces', serif",
-                color: "#3a352e",
-              }}>
-                {title}
-              </span>
-              {isHome ? (
-                <>
-                  <NavLink onClick={() => setView("about")}>About</NavLink>
-                  <NavLink onClick={() => setView("gym")}>My Gym</NavLink>
-                </>
-              ) : (
-                <NavLink onClick={() => setView("home")}>Back</NavLink>
-              )}
-            </div>
-            {isHome && (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", minWidth: 0 }}>
               <button
                 type="button"
-                onClick={() => setWorkoutActive(true)}
+                onClick={() => setView("home")}
                 style={{
-                  background: "#7f9870",
+                  background: "none",
                   border: "none",
-                  padding: "7px 16px",
-                  borderRadius: "999px",
+                  padding: "4px 0",
                   cursor: "pointer",
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: "13px",
+                  fontSize: "18px",
                   fontWeight: 600,
-                  letterSpacing: "0.3px",
-                  color: "#fff",
-                  boxShadow: "0 1px 2px rgba(40,30,20,0.12)",
+                  fontFamily: "'Fraunces', serif",
+                  color: isHome ? "#3a352e" : "#6a85a0",
                 }}
               >
-                Start workout
+                <span ref={tabRefs.home}>Homebody</span>
               </button>
+            </div>
+            {/* Disabled (grayed) off-home rather than hidden, so the header stays constant. */}
+            <button
+              type="button"
+              onClick={() => setWorkoutActive(true)}
+              disabled={!isHome}
+              style={{
+                flexShrink: 0,
+                background: isHome ? "#7f9870" : "#e6e1d7",
+                border: "none",
+                padding: "7px 16px",
+                borderRadius: "999px",
+                cursor: isHome ? "pointer" : "default",
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: "13px",
+                fontWeight: 600,
+                letterSpacing: "0.3px",
+                color: isHome ? "#fff" : "#a8a094",
+                boxShadow: isHome ? "0 1px 2px rgba(40,30,20,0.12)" : "none",
+              }}
+            >
+              Start workout
+            </button>
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "14px", minWidth: 0 }}>
+              <NavLink ref={tabRefs.gym} onClick={() => setView("gym")} active={view === "gym"}>My Gym</NavLink>
+              <NavLink ref={tabRefs.about} onClick={() => setView("about")} active={view === "about"}>About</NavLink>
+            </div>
+            {indicator && (
+              <span
+                aria-hidden
+                style={{
+                  position: "absolute",
+                  left: indicator.left,
+                  top: indicator.top,
+                  width: indicator.width,
+                  height: "1.5px",
+                  background: "#3a352e",
+                  pointerEvents: "none",
+                  transition: "left 0.28s ease, width 0.28s ease, top 0.28s ease",
+                }}
+              />
             )}
           </div>
         </div>
@@ -313,7 +361,7 @@ export default function App() {
   );
 }
 
-function NavLink({ onClick, children }) {
+const NavLink = forwardRef(function NavLink({ onClick, active, children }, ref) {
   return (
     <button
       type="button"
@@ -326,10 +374,10 @@ function NavLink({ onClick, children }) {
         fontFamily: "'DM Sans', sans-serif",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#6a85a0",
+        color: active ? "#3a352e" : "#6a85a0",
       }}
     >
-      {children}
+      <span ref={ref}>{children}</span>
     </button>
   );
-}
+});
