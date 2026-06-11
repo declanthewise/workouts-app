@@ -101,8 +101,6 @@ export default function App() {
                   fontSize: "13px",
                   fontWeight: 500,
                   color: "#6a85a0",
-                  textDecoration: "underline",
-                  textUnderlineOffset: "3px",
                 }}
               >
                 {showAbout ? "Back" : "About"}
