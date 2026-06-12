@@ -81,7 +81,7 @@ export default function App() {
   const [view, setView] = useState("home"); // "home" | "about" | "gym"
   const [openExercise, setOpenExercise] = useState(null);
   const [equipPrompt, setEquipPrompt] = useState(null); // { treeId, nodeIndex, node }
-  const [workoutActive, setWorkoutActive] = useState(false);
+  const [workoutSession, setWorkoutSession] = useState("none"); // "none" | "active" | "paused"
   const [showWelcome, setShowWelcome] = useState(() => {
     try {
       return !localStorage.getItem(WELCOME_KEY);
@@ -138,6 +138,9 @@ export default function App() {
   };
 
   const isHome = view === "home";
+  // A fresh workout can only be started from home, but a paused one can be
+  // resumed from any view.
+  const canStart = workoutSession !== "none" || isHome;
 
   // Sliding underline that glides between the active page's title across the header.
   const rowRef = useRef(null);
@@ -224,26 +227,27 @@ export default function App() {
                 <span ref={tabRefs.home}>Homebody</span>
               </button>
             </div>
-            {/* Disabled (grayed) off-home rather than hidden, so the header stays constant. */}
+            {/* Disabled (grayed) off-home only when no session is in progress; a
+                paused workout can be resumed from any view. */}
             <button
               type="button"
-              onClick={() => setWorkoutActive(true)}
-              disabled={!isHome}
+              onClick={() => setWorkoutSession("active")}
+              disabled={!canStart}
               style={{
                 flexShrink: 0,
                 position: "relative",
                 zIndex: 1,
-                background: isHome ? "#7f9870" : "#e6e1d7",
+                background: canStart ? "#7f9870" : "#e6e1d7",
                 border: "none",
                 padding: "7px 16px",
                 borderRadius: "999px",
-                cursor: isHome ? "pointer" : "default",
+                cursor: canStart ? "pointer" : "default",
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: "13px",
                 fontWeight: 600,
                 letterSpacing: "0.3px",
-                color: isHome ? "#fff" : "#a8a094",
-                boxShadow: isHome ? "0 1px 2px rgba(40,30,20,0.12)" : "none",
+                color: canStart ? "#fff" : "#a8a094",
+                boxShadow: canStart ? "0 1px 2px rgba(40,30,20,0.12)" : "none",
               }}
             >
               Start workout
@@ -353,10 +357,12 @@ export default function App() {
         }}
         onClose={() => setEquipPrompt(null)}
       />
-      {workoutActive && (
+      {workoutSession !== "none" && (
         <Workout
           activeLevels={activeLevels}
-          onClose={() => setWorkoutActive(false)}
+          paused={workoutSession === "paused"}
+          onPause={() => setWorkoutSession("paused")}
+          onEnd={() => setWorkoutSession("none")}
         />
       )}
     </>
