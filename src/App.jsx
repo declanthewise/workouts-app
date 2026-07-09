@@ -1,13 +1,15 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef, forwardRef, Fragment } from "react";
 import { TREES } from "./data/trees";
 import { EQUIPMENT_IDS, nodeUnlocked } from "./data/equipment";
+import { fade, GRAIN, BRAND_GRADIENT, STOP, STOP_GRADIENT } from "./theme";
 import ProgressionRow from "./components/ProgressionRow";
 import About from "./components/About";
 import MyGym from "./components/MyGym";
 import Instructions from "./components/Instructions";
 import EquipmentPrompt from "./components/EquipmentPrompt";
 import Welcome from "./components/Welcome";
-import Workout from "./components/Workout";
+import StopConfirm from "./components/StopConfirm";
+import useWorkoutSession from "./useWorkoutSession";
 
 const STORAGE_KEY = "homebody.activeLevels.v1";
 const EQUIP_KEY = "homebody.equipment.v1";
@@ -81,7 +83,8 @@ export default function App() {
   const [view, setView] = useState("home"); // "home" | "about" | "gym"
   const [openExercise, setOpenExercise] = useState(null);
   const [equipPrompt, setEquipPrompt] = useState(null); // { treeId, nodeIndex, node }
-  const [workoutSession, setWorkoutSession] = useState("none"); // "none" | "active" | "paused"
+  const [workoutActive, setWorkoutActive] = useState(false);
+  const [confirmStop, setConfirmStop] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => {
     try {
       return !localStorage.getItem(WELCOME_KEY);
@@ -138,9 +141,28 @@ export default function App() {
   };
 
   const isHome = view === "home";
-  // A fresh workout can only be started from home, but a paused one can be
-  // resumed from any view.
-  const canStart = workoutSession !== "none" || isHome;
+  // A fresh workout can only be started from home; during a session the
+  // Start slot holds the Stop workout button instead.
+  const canStart = !workoutActive && isHome;
+
+  // The session runs inside the home rows; navigating away doesn't pause it —
+  // rest is rest, the clock keeps running until the workout is stopped.
+  const ws = useWorkoutSession(workoutActive, activeLevels);
+
+  // Follow the workout down the page: when the phase changes (or the session
+  // starts/completes), bring the relevant caption or the completion banner
+  // into view in the rows column.
+  const captionRefs = useRef({});
+  const bannerRef = useRef(null);
+  const prevPhaseRef = useRef(null);
+  useEffect(() => {
+    const phase = ws ? (ws.isComplete ? "complete" : ws.phaseIdx) : null;
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (phase == null || phase === prev) return;
+    const target = phase === "complete" ? bannerRef.current : captionRefs.current[phase];
+    target?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [ws?.phaseIdx, ws?.isComplete]);
 
   // Sliding underline that glides between the active page's title across the header.
   const rowRef = useRef(null);
@@ -173,7 +195,7 @@ export default function App() {
   return (
     <>
       <link
-        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700&family=Fraunces:wght@300;500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=Fraunces:ital,wght@0,300;0,500;0,600;0,700;1,400;1,500;1,600&display=swap"
         rel="stylesheet"
       />
       <style dangerouslySetInnerHTML={{ __html: `
@@ -182,9 +204,12 @@ export default function App() {
         #root { height: 100dvh; }
         * { -webkit-tap-highlight-color: transparent; }
         .rows-scroller::-webkit-scrollbar { display: none; }
+        .press { transition: transform 0.12s ease; }
+        .press:active { transform: scale(0.965); }
       ` }} />
       <div style={{
-        background: "#faf8f4",
+        backgroundColor: "#faf8f4",
+        backgroundImage: GRAIN,
         color: "#3a352e",
         fontFamily: "'DM Sans', sans-serif",
         height: "100dvh",
@@ -193,10 +218,14 @@ export default function App() {
         overflow: "hidden",
       }}>
         <div style={{
-          background: "#f7f4ef",
-          borderBottom: "1px solid #e8e2d8",
+          backgroundColor: "#f6f2ea",
+          backgroundImage: GRAIN,
+          borderBottom: "1px solid #e3dccd",
+          boxShadow: "0 1px 4px rgba(40,30,20,0.05)",
           flexShrink: 0,
           width: "100%",
+          position: "relative",
+          zIndex: 2,
         }}>
           <div ref={rowRef} style={{
             position: "relative",
@@ -218,40 +247,74 @@ export default function App() {
                   border: "none",
                   padding: "4px 0",
                   cursor: "pointer",
-                  fontSize: "18px",
+                  fontSize: "20px",
                   fontWeight: 600,
                   fontFamily: "'Fraunces', serif",
-                  color: isHome ? "#3a352e" : "#6a85a0",
+                  letterSpacing: "-0.2px",
+                  color: isHome ? "#3a352e" : "#8a8276",
+                  transition: "color 0.2s ease",
                 }}
               >
-                <span ref={tabRefs.home}>Homebody</span>
+                <span ref={tabRefs.home}>Homebody<span style={{ color: "#b1794a" }}>.</span></span>
               </button>
             </div>
-            {/* Disabled (grayed) off-home only when no session is in progress; a
-                paused workout can be resumed from any view. */}
+            {/* During a session the Start slot holds a red Stop button instead.
+                Mid-session it asks for confirmation (a stray tap shouldn't kill
+                the workout); once complete there's nothing to lose, so it ends
+                immediately. */}
+            {workoutActive ? (
+              <button
+                type="button"
+                onClick={() => (ws?.isComplete ? setWorkoutActive(false) : setConfirmStop(true))}
+                className="press"
+                style={{
+                  flexShrink: 0,
+                  position: "relative",
+                  zIndex: 1,
+                  background: STOP_GRADIENT,
+                  border: "none",
+                  padding: "8px 17px",
+                  borderRadius: "999px",
+                  cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  letterSpacing: "0.4px",
+                  color: "#fff",
+                  boxShadow: `0 2px 6px ${fade(STOP, 0.35)}, inset 0 1px 0 rgba(255,255,255,0.18)`,
+                }}
+              >
+                Stop workout
+              </button>
+            ) : (
             <button
               type="button"
-              onClick={() => setWorkoutSession("active")}
+              onClick={() => setWorkoutActive(true)}
               disabled={!canStart}
+              className="press"
               style={{
                 flexShrink: 0,
                 position: "relative",
                 zIndex: 1,
-                background: canStart ? "#7f9870" : "#e6e1d7",
+                background: canStart ? BRAND_GRADIENT : "#e6e1d7",
                 border: "none",
-                padding: "7px 16px",
+                padding: "8px 17px",
                 borderRadius: "999px",
                 cursor: canStart ? "pointer" : "default",
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: "13px",
-                fontWeight: 600,
-                letterSpacing: "0.3px",
+                fontWeight: 700,
+                letterSpacing: "0.4px",
                 color: canStart ? "#fff" : "#a8a094",
-                boxShadow: canStart ? "0 1px 2px rgba(40,30,20,0.12)" : "none",
+                boxShadow: canStart
+                  ? "0 2px 6px rgba(111,145,97,0.35), inset 0 1px 0 rgba(255,255,255,0.18)"
+                  : "none",
+                transition: "background 0.2s ease, box-shadow 0.2s ease",
               }}
             >
               Start workout
             </button>
+            )}
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "14px", minWidth: 0 }}>
               <NavLink ref={tabRefs.gym} onClick={() => setView("gym")} active={view === "gym"}>My Gym</NavLink>
               <NavLink ref={tabRefs.about} onClick={() => setView("about")} active={view === "about"}>About</NavLink>
@@ -298,37 +361,100 @@ export default function App() {
             msOverflowStyle: "none",
             WebkitOverflowScrolling: "touch",
           }}>
+            {ws?.isComplete && (
+              <div ref={bannerRef} style={{
+                margin: "10px 18px 4px",
+                padding: "14px 16px",
+                background: "#fffdf9",
+                border: "1px solid #eee7da",
+                borderRadius: "14px",
+                boxShadow: "0 2px 8px rgba(40,30,20,0.06)",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                flexShrink: 0,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "'Fraunces', serif", fontSize: "18px", fontWeight: 600, color: "#3a352e" }}>
+                    Workout complete<span style={{ color: "#b1794a" }}>.</span>
+                  </div>
+                  <div style={{ fontSize: "12.5px", lineHeight: 1.45, color: "#5a5248", marginTop: "2px" }}>
+                    Nice work. Cool down with a few minutes of easy mobility.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setWorkoutActive(false)}
+                  className="press"
+                  style={{
+                    flexShrink: 0,
+                    padding: "10px 18px",
+                    border: "none",
+                    borderRadius: "999px",
+                    background: BRAND_GRADIENT,
+                    color: "#fff",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    letterSpacing: "0.3px",
+                    cursor: "pointer",
+                    boxShadow: "0 2px 6px rgba(111,145,97,0.35), inset 0 1px 0 rgba(255,255,255,0.18)",
+                  }}
+                >
+                  End
+                </button>
+              </div>
+            )}
             {TREES.map((t, idx) => {
               const caption = { 0: "First Pair", 2: "Second Pair", 4: "Third Pair", 6: "Core Triplet" }[idx];
+              // Captions land on even indices; each starts phase idx/2.
+              const captionDim = ws && (ws.isComplete || idx / 2 !== ws.phaseIdx);
               return (
                 <Fragment key={t.id}>
-                  {caption && idx !== 0 && (
-                    <div style={{
-                      height: "1px",
-                      margin: "2px 18px 0",
-                      background: "#dfd8cc",
-                      flexShrink: 0,
-                    }} />
-                  )}
                   {caption && (
-                    <div style={{
-                      padding: idx === 0 ? "4px 18px 2px" : "10px 18px 2px",
-                      fontFamily: "'DM Sans', sans-serif",
-                      fontSize: "10.5px",
-                      fontWeight: 700,
-                      letterSpacing: "1.2px",
-                      textTransform: "uppercase",
-                      color: "#a09888",
-                      textAlign: "center",
+                    <div ref={(el) => (captionRefs.current[idx / 2] = el)} style={{
+                      padding: idx === 0 ? "6px 18px 2px" : "12px 18px 2px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
                       flexShrink: 0,
+                      opacity: captionDim ? 0.45 : 1,
+                      transition: "opacity 0.3s ease",
                     }}>
-                      {caption}
+                      <span aria-hidden style={{
+                        flex: 1,
+                        height: "1px",
+                        background: `linear-gradient(to right, transparent, ${fade(t.color, 0.45)})`,
+                      }} />
+                      <span style={{
+                        fontFamily: "'Fraunces', serif",
+                        fontStyle: "italic",
+                        fontSize: "14.5px",
+                        fontWeight: 500,
+                        letterSpacing: "0.3px",
+                        color: t.color,
+                      }}>
+                        {caption}
+                      </span>
+                      <span aria-hidden style={{
+                        flex: 1,
+                        height: "1px",
+                        background: `linear-gradient(to left, transparent, ${fade(t.color, 0.45)})`,
+                      }} />
                     </div>
                   )}
                   <ProgressionRow
                     tree={t}
                     activeLevel={activeLevels[t.id]}
                     owned={owned}
+                    session={ws ? {
+                      ...ws.rowState(idx),
+                      level: ws.levels[t.id],
+                      restRemaining: ws.restRemaining,
+                      restTotal: ws.restTotal,
+                      onMarkDone: ws.markDone,
+                      onSkipRest: ws.skipRest,
+                    } : null}
                     onLevelChange={(treeId, level) =>
                       setActiveLevels((prev) =>
                         prev[treeId] === level ? prev : { ...prev, [treeId]: level }
@@ -347,6 +473,14 @@ export default function App() {
         </div>
       </div>
       <Welcome open={showWelcome} onClose={dismissWelcome} />
+      <StopConfirm
+        open={confirmStop}
+        onKeep={() => setConfirmStop(false)}
+        onStop={() => {
+          setConfirmStop(false);
+          setWorkoutActive(false);
+        }}
+      />
       <Instructions exercise={openExercise} onClose={() => setOpenExercise(null)} />
       <EquipmentPrompt
         prompt={equipPrompt}
@@ -357,14 +491,6 @@ export default function App() {
         }}
         onClose={() => setEquipPrompt(null)}
       />
-      {workoutSession !== "none" && (
-        <Workout
-          activeLevels={activeLevels}
-          paused={workoutSession === "paused"}
-          onPause={() => setWorkoutSession("paused")}
-          onEnd={() => setWorkoutSession("none")}
-        />
-      )}
     </>
   );
 }
@@ -382,7 +508,8 @@ const NavLink = forwardRef(function NavLink({ onClick, active, children }, ref) 
         fontFamily: "'DM Sans', sans-serif",
         fontSize: "13px",
         fontWeight: 500,
-        color: active ? "#3a352e" : "#6a85a0",
+        color: active ? "#3a352e" : "#8a8276",
+        transition: "color 0.2s ease",
       }}
     >
       <span ref={ref}>{children}</span>

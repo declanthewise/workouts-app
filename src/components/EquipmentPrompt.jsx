@@ -76,11 +76,11 @@ export default function EquipmentPrompt({ prompt, owned, onConfirm, onClose }) {
           position: "relative",
           width: "100%",
           maxWidth: "340px",
-          background: "#fff",
+          background: "#fffdf9",
           color: "#3a352e",
-          borderRadius: "14px",
+          borderRadius: "16px",
           padding: "24px 24px 22px",
-          boxShadow: "0 12px 32px rgba(40,30,20,0.18)",
+          boxShadow: "0 18px 48px rgba(40,30,20,0.25)",
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
@@ -113,10 +113,10 @@ export default function EquipmentPrompt({ prompt, owned, onConfirm, onClose }) {
                   {EQUIPMENT_NAME[id]}
                 </span>
                 <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                  <button type="button" onClick={() => answer(id, true)} style={pill("yes", a === true)}>
+                  <button type="button" className="press" onClick={() => answer(id, true)} style={pill("yes", a === true)}>
                     Yes
                   </button>
-                  <button type="button" onClick={() => answer(id, false)} style={pill("no", a === false)}>
+                  <button type="button" className="press" onClick={() => answer(id, false)} style={pill("no", a === false)}>
                     Not yet
                   </button>
                 </div>
@@ -140,8 +140,8 @@ function pill(kind, active) {
   };
   if (kind === "yes") {
     return active
-      ? { ...base, border: "1px solid #7f9870", background: "#7f9870", color: "#fff" }
-      : { ...base, border: "1px solid #cdd9c4", background: "#fff", color: "#5f7553" };
+      ? { ...base, border: "1px solid #6f9161", background: "#6f9161", color: "#fff" }
+      : { ...base, border: "1px solid #c9d6bf", background: "#fff", color: "#5d7550" };
   }
   return active
     ? { ...base, border: "1px solid #d8d1c5", background: "#ece8e1", color: "#5a5248" }

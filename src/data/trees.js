@@ -6,7 +6,7 @@ export const TREES = [
   {
     id: "pullup",
     name: "Pull-up",
-    color: "#6a85a0",
+    color: "#54749e",
     nodes: [
       { name: "Scapular Pulls", equipment: [["bar"]], steps: [
         "Hang from the bar with straight arms.",
@@ -43,7 +43,7 @@ export const TREES = [
   {
     id: "squat",
     name: "Squat",
-    color: "#6a85a0",
+    color: "#54749e",
     nodes: [
       { name: "Assisted Squat", steps: [
         "Hold a doorframe or sturdy post for light support.",
@@ -85,7 +85,7 @@ export const TREES = [
   {
     id: "dip",
     name: "Dip",
-    color: "#7f9870",
+    color: "#6f9161",
     nodes: [
       { name: "Parallel Bar Support Hold", equipment: [["parallettes", "rings"]], steps: [
         "Grip parallel bars, press up to fully straight arms.",
@@ -112,7 +112,7 @@ export const TREES = [
   {
     id: "hinge",
     name: "Hinge",
-    color: "#7f9870",
+    color: "#6f9161",
     nodes: [
       { name: "Romanian Deadlift", equipment: [["weight"]], steps: [
         "Stand holding a weight, feet hip-width, slight knee bend.",
@@ -139,7 +139,7 @@ export const TREES = [
   {
     id: "row",
     name: "Row",
-    color: "#b08a68",
+    color: "#b1794a",
     nodes: [
       { name: "Vertical Rows", equipment: [["bar", "rings"]], steps: [
         "Grip a bar at chest height, lean back slightly with feet close.",
@@ -171,7 +171,7 @@ export const TREES = [
   {
     id: "pushup",
     name: "Push-up",
-    color: "#b08a68",
+    color: "#b1794a",
     nodes: [
       { name: "Wall Push-ups", steps: [
         "Stand facing a wall, hands on the wall at shoulder height.",
@@ -203,7 +203,7 @@ export const TREES = [
   {
     id: "antiExtension",
     name: "Anti-Extension",
-    color: "#9b8d7a",
+    color: "#8f7391",
     nodes: [
       { name: "Plank", steps: [
         "Forearms on the floor, elbows under shoulders, body straight.",
@@ -225,7 +225,7 @@ export const TREES = [
   {
     id: "antiRotation",
     name: "Anti-Rotation",
-    color: "#9b8d7a",
+    color: "#8f7391",
     nodes: [
       { name: "Banded Pallof Press", equipment: [["band"]], steps: [
         "Stand side-on to an anchored band, holding it at your chest with both hands.",
@@ -242,7 +242,7 @@ export const TREES = [
   {
     id: "extension",
     name: "Extension",
-    color: "#9b8d7a",
+    color: "#8f7391",
     nodes: [
       { name: "Reverse Hyperextension", steps: [
         "Lie face-down on a bench with hips at the edge, legs hanging.",

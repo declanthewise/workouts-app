@@ -16,7 +16,7 @@ export default function About() {
           href="https://www.reddit.com/r/bodyweightfitness/wiki/kb/recommended_routine/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ color: "#6a85a0", textDecoration: "underline" }}
+          style={{ color: "#54749e", textDecoration: "underline" }}
         >
           r/bodyweightfitness Recommended Routine
         </a>
@@ -65,15 +65,13 @@ function Section({ title, children }) {
   return (
     <section style={{ marginBottom: "18px" }}>
       <h3 style={{
-        fontFamily: "'DM Sans', sans-serif",
-        fontSize: "10.5px",
-        fontWeight: 700,
-        letterSpacing: "1.2px",
-        textTransform: "uppercase",
-        color: "#a09888",
+        fontFamily: "'Fraunces', serif",
+        fontSize: "17px",
+        fontWeight: 600,
+        color: "#3a352e",
         margin: "0 0 6px",
       }}>
-        {title}
+        {title}<span style={{ color: "#b1794a" }}>.</span>
       </h3>
       <div style={{ color: "#5a5248" }}>{children}</div>
     </section>

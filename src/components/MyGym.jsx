@@ -23,6 +23,7 @@ export default function MyGym({ owned, onToggle }) {
               type="button"
               onClick={() => onToggle(e.id)}
               aria-pressed={on}
+              className="press"
               style={{
                 display: "flex",
                 alignItems: "flex-start",
@@ -31,12 +32,12 @@ export default function MyGym({ owned, onToggle }) {
                 textAlign: "left",
                 padding: "14px 16px",
                 borderRadius: "12px",
-                border: `1px solid ${on ? "#7f9870" : "#e8e2d8"}`,
-                background: on ? "#f4f7f1" : "#fff",
+                border: `1px solid ${on ? "#6f9161" : "#ece5d8"}`,
+                background: on ? "#f3f6ef" : "#fffdf9",
                 cursor: "pointer",
                 fontFamily: "'DM Sans', sans-serif",
-                boxShadow: "0 1px 2px rgba(40,30,20,0.04)",
-                transition: "border-color 0.15s ease, background 0.15s ease",
+                boxShadow: on ? "0 2px 10px rgba(111,145,97,0.18)" : "0 1px 2px rgba(40,30,20,0.04)",
+                transition: "border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease",
               }}
             >
               <span style={{ flex: 1, minWidth: 0 }}>
@@ -77,7 +78,7 @@ function Switch({ on }) {
         width: "42px",
         height: "24px",
         borderRadius: "999px",
-        background: on ? "#7f9870" : "#d6cfc1",
+        background: on ? "#6f9161" : "#d6cfc1",
         position: "relative",
         transition: "background 0.15s ease",
       }}

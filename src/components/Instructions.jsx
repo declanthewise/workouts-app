@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { fade } from "../theme";
 
 export default function Instructions({ exercise, onClose }) {
   useEffect(() => {
@@ -11,6 +12,10 @@ export default function Instructions({ exercise, onClose }) {
   }, [exercise, onClose]);
 
   if (!exercise) return null;
+
+  // Accent rides along with the exercise from its progression row; the fallback
+  // covers any caller that doesn't pass one.
+  const accent = exercise.color || "#6f9161";
 
   return (
     <div
@@ -37,11 +42,11 @@ export default function Instructions({ exercise, onClose }) {
           maxWidth: "360px",
           maxHeight: "calc(100dvh - 48px)",
           overflowY: "auto",
-          background: "#fff",
+          background: "#fffdf9",
           color: "#3a352e",
-          borderRadius: "14px",
+          borderRadius: "16px",
           padding: "22px 24px 20px",
-          boxShadow: "0 12px 32px rgba(40,30,20,0.18)",
+          boxShadow: "0 18px 48px rgba(40,30,20,0.25)",
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
@@ -70,26 +75,54 @@ export default function Instructions({ exercise, onClose }) {
           id="instructions-title"
           style={{
             fontFamily: "'Fraunces', serif",
-            fontSize: "20px",
-            fontWeight: 500,
+            fontSize: "21px",
+            fontWeight: 600,
             margin: "0 28px 12px 0",
             color: "#3a352e",
           }}
         >
           {exercise.name}
         </h2>
+        <div aria-hidden style={{
+          width: "30px",
+          height: "3px",
+          borderRadius: "2px",
+          background: fade(accent, 0.65),
+          margin: "-4px 0 14px",
+        }} />
         <ol
           style={{
             margin: 0,
-            paddingLeft: "20px",
+            padding: 0,
+            listStyle: "none",
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
             fontSize: "14px",
             lineHeight: 1.55,
             color: "#5a5248",
           }}
         >
           {exercise.steps.map((step, i) => (
-            <li key={i} style={{ marginBottom: i < exercise.steps.length - 1 ? "8px" : 0 }}>
-              {step}
+            <li key={i} style={{ display: "flex", gap: "12px" }}>
+              <span aria-hidden style={{
+                flexShrink: 0,
+                width: "22px",
+                height: "22px",
+                borderRadius: "50%",
+                background: fade(accent, 0.14),
+                color: accent,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontFamily: "'Fraunces', serif",
+                fontSize: "12.5px",
+                fontWeight: 600,
+                marginTop: "1px",
+              }}>
+                {i + 1}
+              </span>
+              <span>{step}</span>
             </li>
           ))}
         </ol>
