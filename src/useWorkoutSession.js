@@ -94,6 +94,11 @@ export default function useWorkoutSession(running, activeLevels) {
   const activeMv = !resting && queuePos < queue.length ? queue[queuePos] : null;
   const restingMv = resting && queuePos > 0 ? queue[queuePos - 1] : null;
 
+  // The trailing rest of a phase (all sets logged, timer still running)
+  // previews the next phase: its rows expand while the rest ring ticks on.
+  const previewIdx =
+    resting && queuePos >= queue.length && phaseIdx + 1 < PHASES.length ? phaseIdx + 1 : null;
+
   const rowState = (treeIdx) => {
     const dropped = levels[TREES[treeIdx].id] == null;
     const rowPhase = PHASES.findIndex((p) => p.treeIdxs.includes(treeIdx));
@@ -105,16 +110,33 @@ export default function useWorkoutSession(running, activeLevels) {
         for (let i = 0; i < queuePos; i++) if (queue[i] === treeIdx) setsDone++;
       }
     }
-    const role = phase !== "current" || dropped ? null
-      : activeMv === treeIdx ? "active"
-      : restingMv === treeIdx ? "resting"
-      : "waiting";
-    return { phase, role, setsDone, dropped };
+    let role = null;
+    if (!dropped && phase === "current") {
+      role = activeMv === treeIdx ? "active"
+        : restingMv === treeIdx ? "resting"
+        // During the trailing rest the phase's other rows are finished; only
+        // the resting tile stays live.
+        : previewIdx == null ? "waiting"
+        : null;
+    } else if (!dropped && rowPhase === previewIdx) {
+      role = "preview";
+    }
+    // Expanded rows show inline instructions: the pair in play, plus the next
+    // pair once its predecessor is down to the trailing rest. The resting row
+    // stays expanded through that trailing rest so its tile never shrinks
+    // while the ring is still ticking.
+    const expanded = !dropped &&
+      ((rowPhase === phaseIdx && !isComplete && (previewIdx == null || restingMv === treeIdx)) ||
+        rowPhase === previewIdx);
+    return { phase, role, setsDone, dropped, expanded };
   };
 
   return {
     levels,
     phaseIdx,
+    // Where the user's attention should be: the previewed pair during a
+    // trailing rest, the current pair otherwise. Drives captions and scroll.
+    focusPhaseIdx: previewIdx ?? phaseIdx,
     isComplete,
     restRemaining: resting ? resting.remaining : 0,
     restTotal: resting ? resting.total : 0,

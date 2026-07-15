@@ -40,9 +40,10 @@ If that npx cache path is gone, `npx playwright --version` re-resolves it; find 
 
 The workout runs *inside* the home rows (no separate page):
 
-1. Start workout → current-phase rows stay lit, other rows/captions dim to view-only; tapping the active tile logs a set and the tile becomes a rest countdown ring (tap = skip 10s).
+1. Start workout → the current pair's tiles expand with inline numbered instructions and their rows grow; other rows/captions dim to view-only. Tapping the active tile logs a set and the tile becomes a compact rest countdown ring (tap = skip 10s).
 2. The header's Start button becomes a red **Stop workout** button during a session. There is no pause; nav between views leaves the clock running.
 3. Stop workout mid-session opens the **StopConfirm** dialog; "Keep going" / Escape / overlay tap dismiss it with the session intact, "Stop" ends the session. Once the workout is complete, Stop ends immediately with no dialog.
-4. Row swipe/chevrons/`+` are inert during a session; the circled `?` still opens instructions.
-5. Full session: spam the rest tile to skip rests; phases advance down the page; completion banner appears at the top of the rows with an End button.
-6. Confirming Stop anytime → rows instantly back to normal, Start workout pill returns.
+4. Row swipe/chevrons/`+` are inert during a session, and the circled `?` is hidden — instructions render inline in the expanded tiles instead.
+5. Trailing-rest preview: after the last set of a pair, while its rest ring still ticks, the *next* pair expands, its caption lights, and the view scrolls to it; the previewed tiles aren't tappable until the rest ends. The rest tile stays tappable throughout.
+6. Full session: spam the rest tile to skip rests; phases advance down the page; completion banner appears at the top of the rows with an End button.
+7. Confirming Stop anytime → rows instantly back to normal, Start workout pill returns.

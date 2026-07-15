@@ -5,6 +5,9 @@ import { SETS } from "../useWorkoutSession";
 
 const TILE_W = 190;
 const TILE_MIN_H = 52;
+// Cap for the inline-instructions block while it animates open. Generous:
+// the longest steps render ~150px tall at tile width (checked empirically).
+const STEPS_MAX_H = 300;
 const LABEL_W = 84;
 const ROW_MIN_H = 72;
 // Gap between tiles. Wide enough that the right chevron (which sits just past
@@ -12,6 +15,10 @@ const ROW_MIN_H = 72;
 const GAP = 32;
 // Symmetric spacers center tile[0] and tile[last] in the viewport at the scroll extremes.
 const SPACER = `calc(50% - ${TILE_W / 2 + GAP}px)`;
+
+// A session-expanded tile keeps its centered left edge and stretches to just
+// shy of the viewport's right edge so its inline instructions get the width.
+const EXPANDED_TILE_W = `calc(50% + ${TILE_W / 2 - 12}px)`;
 
 // Previous tiles fully hidden (alpha=0 up to just before the active tile).
 // Active tile opaque. Past the active tile, fades so the next tile shows faded.
@@ -22,6 +29,14 @@ const EDGE_FADE_MASK = `linear-gradient(to right, ` +
   `rgba(0,0,0,1) calc(50% + ${TILE_W / 2}px), ` +
   `rgba(0,0,0,0.6) calc(50% + ${TILE_W / 2 + GAP}px), ` +
   `rgba(0,0,0,0) 100%)`;
+
+// Expanded session rows drop the right-hand fade so the widened tile paints
+// clear to the viewport edge (tiles pushed past it are clipped, not faded).
+const SESSION_EXPANDED_MASK = `linear-gradient(to right, ` +
+  `rgba(0,0,0,0) 0, ` +
+  `rgba(0,0,0,0) calc(50% - ${TILE_W / 2 + GAP}px), ` +
+  `rgba(0,0,0,1) calc(50% - ${TILE_W / 2}px), ` +
+  `rgba(0,0,0,1) 100%)`;
 
 function fmt(seconds) {
   const m = Math.floor(seconds / 60);
@@ -106,15 +121,23 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
   const canGoPrev = centered > 0;
   const canGoNext = centered < tree.nodes.length - 1;
 
-  // Rows outside the current phase (and rows with no unlocked tile) sit back
-  // and are view-only until the workout ends.
-  const dimRow = inSession && (session.phase !== "current" || session.dropped);
+  // Rows not in play (and rows with no unlocked tile) sit back and are
+  // view-only until the workout ends. A row stays lit while it's expanded
+  // (current pair, or the next pair previewed during a trailing rest) or
+  // while its rest ring is still ticking.
+  const dimRow = inSession && (session.dropped || (!session.expanded && session.role !== "resting"));
+  // An expanded session row grows its selected tile rightward to the viewport edge.
+  const rowExpanded = inSession && !session.dropped && session.expanded;
 
   return (
     <>
       <style>{`.tile-scroller::-webkit-scrollbar { display: none; }`}</style>
       <div style={{
-        flex: `1 0 ${ROW_MIN_H}px`,
+        // Basis auto so an expanded tile (inline instructions during a
+        // session) can grow the row with its content; behaves exactly like
+        // a 72px basis when the content is a one-line tile.
+        flex: "1 0 auto",
+        minHeight: `${ROW_MIN_H}px`,
         display: "flex",
         flexDirection: "row",
         alignItems: "stretch",
@@ -147,8 +170,8 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
             marginBottom: "-14px",
             paddingTop: "15px",
             paddingBottom: "19px",
-            maskImage: EDGE_FADE_MASK,
-            WebkitMaskImage: EDGE_FADE_MASK,
+            maskImage: rowExpanded ? SESSION_EXPANDED_MASK : EDGE_FADE_MASK,
+            WebkitMaskImage: rowExpanded ? SESSION_EXPANDED_MASK : EDGE_FADE_MASK,
           }}
         >
           {/* Leading spacer lets tile[0] reach the viewport center at scrollLeft = 0. */}
@@ -160,16 +183,20 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
             const role = inSession && isSelected && session.phase === "current" ? session.role : null;
             const isRestingTile = role === "resting";
             const actionable = role === "active" || role === "resting";
+            // Inline instructions on the selected tile of an expanded row —
+            // resting included, so the tile holds its size while the ring ticks.
+            const showSteps = inSession && isSelected && !session.dropped && session.expanded;
             return (
               <div
                 key={i}
                 ref={(el) => (tileRefs.current[i] = el)}
                 style={{
                   position: "relative",
-                  flex: `0 0 ${TILE_W}px`,
+                  flex: `0 0 ${rowExpanded && isSelected ? EXPANDED_TILE_W : `${TILE_W}px`}`,
                   minHeight: `${TILE_MIN_H}px`,
                   scrollSnapAlign: "center",
                   display: "flex",
+                  transition: "flex-basis 0.4s ease",
                 }}
               >
                 <button
@@ -214,80 +241,123 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
-                    alignItems: isRestingTile ? "center" : "flex-start",
+                    alignItems: "flex-start",
                     fontFamily: "'DM Sans', sans-serif",
                     cursor: !inSession || actionable ? "pointer" : "default",
                     textAlign: "left",
                     transition: "box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease",
                   }}
                 >
-                  {isRestingTile ? (
-                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "16px" }}>
+                  {/* Progress sits along the tile's top edge, on the same
+                      line as the circled-? button in the opposite corner.
+                      Every tile carries it so the faded neighbors mirror
+                      the selected tile's layout. */}
+                  {inSession && !session.dropped && isSelected ? (
+                    // Sets done this session (full for finished phases,
+                    // empty for upcoming ones).
+                    <span aria-hidden style={{ position: "absolute", top: "12px", left: "12px", display: "flex", gap: "5px" }}>
+                      {Array.from({ length: SETS }).map((_, j) => (
+                        <span key={j} style={{
+                          width: "9px",
+                          height: "9px",
+                          borderRadius: "50%",
+                          boxSizing: "border-box",
+                          background: j < session.setsDone ? tree.color : "transparent",
+                          border: `1.5px solid ${j < session.setsDone ? tree.color : fade(tree.color, 0.35)}`,
+                        }} />
+                      ))}
+                    </span>
+                  ) : (
+                    <span aria-hidden style={{ position: "absolute", top: "15px", left: "12px", display: "flex", gap: "3px" }}>
+                      {tree.nodes.map((_, j) => (
+                        <span key={j} style={{
+                          width: "9px",
+                          height: "3px",
+                          borderRadius: "2px",
+                          background: isLocked
+                            ? (j <= i ? "#c5beb0" : "#e8e2d5")
+                            : (j <= i ? tree.color : fade(tree.color, 0.22)),
+                        }} />
+                      ))}
+                    </span>
+                  )}
+                  {/* Rest countdown rides the top-right corner (the circled-?'s
+                      spot outside a session) so the tile keeps its full size —
+                      name and instructions stay put — while the ring ticks. */}
+                  {isRestingTile && (
+                    <span style={{
+                      position: "absolute",
+                      top: "7px",
+                      right: "10px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}>
                       <span style={{
                         fontFamily: "'Fraunces', serif",
                         fontStyle: "italic",
-                        fontSize: "19px",
+                        fontSize: "16px",
                         fontWeight: 600,
                         color: tree.color,
                         lineHeight: 1,
                       }}>
                         Rest
                       </span>
-                      <CircleProgress remaining={session.restRemaining} total={session.restTotal} color={tree.color} size={38} />
+                      <CircleProgress remaining={session.restRemaining} total={session.restTotal} color={tree.color} size={36} />
                     </span>
-                  ) : (
-                    <>
-                      {/* Progress sits along the tile's top edge, on the same
-                          line as the circled-? button in the opposite corner.
-                          Every tile carries it so the faded neighbors mirror
-                          the selected tile's layout. */}
-                      {inSession && !session.dropped && isSelected ? (
-                        // Sets done this session (full for finished phases,
-                        // empty for upcoming ones).
-                        <span aria-hidden style={{ position: "absolute", top: "12px", left: "12px", display: "flex", gap: "5px" }}>
-                          {Array.from({ length: SETS }).map((_, j) => (
-                            <span key={j} style={{
-                              width: "9px",
-                              height: "9px",
-                              borderRadius: "50%",
-                              boxSizing: "border-box",
-                              background: j < session.setsDone ? tree.color : "transparent",
-                              border: `1.5px solid ${j < session.setsDone ? tree.color : fade(tree.color, 0.35)}`,
-                            }} />
-                          ))}
-                        </span>
-                      ) : (
-                        <span aria-hidden style={{ position: "absolute", top: "15px", left: "12px", display: "flex", gap: "3px" }}>
-                          {tree.nodes.map((_, j) => (
-                            <span key={j} style={{
-                              width: "9px",
-                              height: "3px",
-                              borderRadius: "2px",
-                              background: isLocked
-                                ? (j <= i ? "#c5beb0" : "#e8e2d5")
-                                : (j <= i ? tree.color : fade(tree.color, 0.22)),
-                            }} />
-                          ))}
-                        </span>
-                      )}
-                      <span style={{
-                        fontSize: "13.5px",
-                        fontWeight: isSelected ? 700 : 500,
-                        lineHeight: 1.2,
-                        minWidth: 0,
-                        whiteSpace: "nowrap",
-                        color: isLocked ? "#b0a89b" : "#3a352e",
-                        // The progress row rides along the top edge; nudge the
-                        // name down (flex-center splits the margin in half) so
-                        // it balances the space below it.
-                        marginTop: "13px",
-                      }}>
-                        {ex.name}
-                      </span>
-                    </>
                   )}
+                  <span style={{
+                    fontSize: "13.5px",
+                    fontWeight: isSelected ? 700 : 500,
+                    lineHeight: 1.2,
+                    minWidth: 0,
+                    whiteSpace: "nowrap",
+                    color: isLocked ? "#b0a89b" : "#3a352e",
+                    // The progress row rides along the top edge; nudge the
+                    // name down (flex-center splits the margin in half) so
+                    // it balances the space below it.
+                    marginTop: "13px",
+                  }}>
+                    {ex.name}
+                  </span>
+                  {/* Inline instructions, expanded during a session on the
+                      pair in play (and the previewed next pair). Always
+                      mounted at max-height 0 so the expansion animates. */}
+                  <span
+                    aria-hidden={!showSteps}
+                    style={{
+                      display: "block",
+                      alignSelf: "stretch",
+                      overflow: "hidden",
+                      maxHeight: showSteps ? `${STEPS_MAX_H}px` : "0px",
+                      opacity: showSteps ? 1 : 0,
+                      transition: "max-height 0.4s ease, opacity 0.35s ease",
+                    }}
+                  >
+                    <span style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 2px 2px" }}>
+                      {(ex.steps || []).map((s, k) => (
+                        <span key={k} style={{
+                          display: "flex",
+                          gap: "7px",
+                          fontSize: "11.5px",
+                          lineHeight: 1.45,
+                          fontWeight: 500,
+                          color: "#5a5248",
+                          whiteSpace: "normal",
+                          textAlign: "left",
+                        }}>
+                          <span style={{ color: tree.color, fontWeight: 700, fontVariantNumeric: "tabular-nums", flexShrink: 0 }}>
+                            {k + 1}
+                          </span>
+                          <span style={{ minWidth: 0 }}>{s}</span>
+                        </span>
+                      ))}
+                    </span>
+                  </span>
                 </button>
-                {isSelected && !isLocked && (!inSession || role === "active" || role === "waiting") && (
+                {/* Hidden during a session — instructions render inline in the
+                    expanded tile instead. */}
+                {isSelected && !isLocked && !inSession && (
                   <button
                     type="button"
                     aria-label={`How to do ${ex.name}`}

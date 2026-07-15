@@ -156,13 +156,17 @@ export default function App() {
   const bannerRef = useRef(null);
   const prevPhaseRef = useRef(null);
   useEffect(() => {
-    const phase = ws ? (ws.isComplete ? "complete" : ws.phaseIdx) : null;
+    const phase = ws ? (ws.isComplete ? "complete" : ws.focusPhaseIdx) : null;
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
     if (phase == null || phase === prev) return;
     const target = phase === "complete" ? bannerRef.current : captionRefs.current[phase];
     target?.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, [ws?.phaseIdx, ws?.isComplete]);
+    // Rows above/below are still animating their expand/collapse when the
+    // first scroll lands; realign once the heights settle.
+    const id = setTimeout(() => target?.scrollIntoView({ block: "start", behavior: "smooth" }), 550);
+    return () => clearTimeout(id);
+  }, [ws?.focusPhaseIdx, ws?.isComplete]);
 
   // Sliding underline that glides between the active page's title across the header.
   const rowRef = useRef(null);
@@ -408,7 +412,7 @@ export default function App() {
             {TREES.map((t, idx) => {
               const caption = { 0: "First Pair", 2: "Second Pair", 4: "Third Pair", 6: "Core Triplet" }[idx];
               // Captions land on even indices; each starts phase idx/2.
-              const captionDim = ws && (ws.isComplete || idx / 2 !== ws.phaseIdx);
+              const captionDim = ws && (ws.isComplete || idx / 2 !== ws.focusPhaseIdx);
               return (
                 <Fragment key={t.id}>
                   {caption && (
