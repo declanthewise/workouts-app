@@ -5,9 +5,17 @@ import { SETS } from "../useWorkoutSession";
 
 const TILE_W = 190;
 const TILE_MIN_H = 52;
-// Cap for the inline-instructions block while it animates open. Generous:
-// the longest steps render ~150px tall at tile width (checked empirically).
-const STEPS_MAX_H = 300;
+// One duration + curve shared by the width (flex-basis) and height
+// (grid-template-rows) halves of the session expansion, so the tile grows
+// diagonally instead of one axis finishing before the other.
+const EXPAND_MS = 450;
+const EXPAND_EASE = "cubic-bezier(0.25, 0.9, 0.35, 1)";
+// Fixed height of the open steps box, so every tile expands to the exact
+// same size and holds it (a content-driven height would re-fit itself after
+// the text rewraps at the expanded width). Sized to the tallest steps at the
+// narrowest supported viewport (Band-assisted Pull-ups @ 320px ≈ 125px) —
+// re-measure if steps text or its font styles change.
+const STEPS_H = 128;
 const LABEL_W = 84;
 const ROW_MIN_H = 72;
 // Gap between tiles. Wide enough that the right chevron (which sits just past
@@ -16,12 +24,18 @@ const GAP = 32;
 // Symmetric spacers center tile[0] and tile[last] in the viewport at the scroll extremes.
 const SPACER = `calc(50% - ${TILE_W / 2 + GAP}px)`;
 
-// A session-expanded tile keeps its centered left edge and stretches to just
-// shy of the viewport's right edge so its inline instructions get the width.
-const EXPANDED_TILE_W = `calc(50% + ${TILE_W / 2 - 12}px)`;
+// A session-expanded tile stretches across the whole viewport (12px inset
+// each side): flex-basis supplies the width while a negative margin-left
+// slides its left edge from the centered position out to the viewport edge —
+// both on the expansion curve so the tile grows as one diagonal move.
+const EXPANDED_TILE_W = "calc(100% - 24px)";
+const EXPANDED_TILE_ML = `calc(${TILE_W / 2 + 12}px - 50%)`;
 
 // Previous tiles fully hidden (alpha=0 up to just before the active tile).
 // Active tile opaque. Past the active tile, fades so the next tile shows faded.
+// Only applied outside a session (and on dropped rows): mask gradients can't
+// transition, so during a session the same fade is reproduced with per-tile
+// opacity (see tileOpacity) which animates as rows expand and collapse.
 const EDGE_FADE_MASK = `linear-gradient(to right, ` +
   `rgba(0,0,0,0) 0, ` +
   `rgba(0,0,0,0) calc(50% - ${TILE_W / 2 + GAP}px), ` +
@@ -29,14 +43,6 @@ const EDGE_FADE_MASK = `linear-gradient(to right, ` +
   `rgba(0,0,0,1) calc(50% + ${TILE_W / 2}px), ` +
   `rgba(0,0,0,0.6) calc(50% + ${TILE_W / 2 + GAP}px), ` +
   `rgba(0,0,0,0) 100%)`;
-
-// Expanded session rows drop the right-hand fade so the widened tile paints
-// clear to the viewport edge (tiles pushed past it are clipped, not faded).
-const SESSION_EXPANDED_MASK = `linear-gradient(to right, ` +
-  `rgba(0,0,0,0) 0, ` +
-  `rgba(0,0,0,0) calc(50% - ${TILE_W / 2 + GAP}px), ` +
-  `rgba(0,0,0,1) calc(50% - ${TILE_W / 2}px), ` +
-  `rgba(0,0,0,1) 100%)`;
 
 function fmt(seconds) {
   const m = Math.floor(seconds / 60);
@@ -47,7 +53,7 @@ function fmt(seconds) {
 // `session` is null outside a workout. During one it carries this row's slice
 // of the session: { level, phase, role, setsDone, dropped,
 // restRemaining, restTotal, onMarkDone, onSkipRest }.
-export default function ProgressionRow({ tree, activeLevel, owned, session, onLevelChange, onOpenInstructions, onRequestEquipment }) {
+export default function ProgressionRow({ tree, activeLevel, owned, session, onLevelChange, onOpenInstructions, onRequestEquipment, rowRef }) {
   const scrollerRef = useRef(null);
   const tileRefs = useRef([]);
   const rafRef = useRef(null);
@@ -58,31 +64,53 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
   // The tile currently in the center column (locked or not) — drives the chevrons,
   // which step one tile at a time so grayed tiles stay reachable.
   const [centered, setCentered] = useState(activeLevel ?? 0);
+  // True while a just-ended session's tiles are still easing back to 190px;
+  // keeps the scroller locked so scroll-snap can't re-snap (and fire level
+  // changes) against transient mid-collapse positions.
+  const [settling, setSettling] = useState(false);
+  const wasInSessionRef = useRef(false);
 
   const unlocked = tree.nodes.map((n) => nodeUnlocked(n, owned));
 
   // Set scrollLeft directly rather than scrollIntoView so we never perturb the
-  // vertical scroll position of the rows column above us.
+  // vertical scroll position of the rows column above us. Computed from static
+  // geometry, not live rects — the leading spacer puts tile[i]'s centered
+  // position exactly at i*(TILE_W+GAP) — so it lands right even while an
+  // expanded tile's width/margin are still mid-transition.
   const centerTile = (idx) => {
     const scroller = scrollerRef.current;
-    const tile = tileRefs.current[idx];
-    if (!scroller || !tile) return;
-    const scrollerRect = scroller.getBoundingClientRect();
-    const targetTileLeft = scrollerRect.left + (scrollerRect.width - TILE_W) / 2;
-    scroller.scrollLeft += tile.getBoundingClientRect().left - targetTileLeft;
+    if (!scroller) return;
+    scroller.scrollLeft = idx * (TILE_W + GAP);
   };
 
   // Center without animation on mount, and again whenever session mode
   // toggles: entering snaps to the frozen level, leaving snaps back to the
   // live selection. (Not on every level change — mid-swipe re-centering would
-  // fight the user's scroll.)
+  // fight the user's scroll.) On session exit the re-center waits for the
+  // expanded tile's collapse to settle first (see `settling`).
   useEffect(() => {
-    if (displayLevel != null) centerTile(displayLevel);
+    const leaving = wasInSessionRef.current && !inSession;
+    wasInSessionRef.current = inSession;
+    if (!leaving) {
+      if (displayLevel != null) centerTile(displayLevel);
+      return;
+    }
+    setSettling(true);
+    const id = setTimeout(() => {
+      if (displayLevel != null) centerTile(displayLevel);
+      setSettling(false);
+    }, EXPAND_MS + 80);
+    return () => {
+      clearTimeout(id);
+      setSettling(false);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inSession]);
 
+  const scrollLocked = inSession || settling;
+
   const handleScroll = () => {
-    if (inSession) return; // scroller is locked during a workout
+    if (scrollLocked) return; // scroller is locked during a workout
     if (rafRef.current != null) return;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
@@ -126,13 +154,19 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
   // (current pair, or the next pair previewed during a trailing rest) or
   // while its rest ring is still ticking.
   const dimRow = inSession && (session.dropped || (!session.expanded && session.role !== "resting"));
-  // An expanded session row grows its selected tile rightward to the viewport edge.
+  // An expanded session row grows its selected tile to span the viewport.
   const rowExpanded = inSession && !session.dropped && session.expanded;
+  // During a session (dropped rows aside) the edge fade moves off the mask and
+  // onto the tiles themselves so it can animate with the expansion.
+  const sessionFade = inSession && !session.dropped;
 
   return (
     <>
-      <style>{`.tile-scroller::-webkit-scrollbar { display: none; }`}</style>
-      <div style={{
+      <style>{`
+        .tile-scroller::-webkit-scrollbar { display: none; }
+        @keyframes rest-overlay-in { from { opacity: 0; } }
+      `}</style>
+      <div ref={rowRef} style={{
         // Basis auto so an expanded tile (inline instructions during a
         // session) can grow the row with its content; behaves exactly like
         // a 72px basis when the content is a one-line tile.
@@ -156,9 +190,9 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
             display: "flex",
             alignItems: "stretch",
             gap: `${GAP}px`,
-            overflowX: inSession ? "hidden" : "auto",
+            overflowX: scrollLocked ? "hidden" : "auto",
             overflowY: "hidden",
-            scrollSnapType: inSession ? "none" : "x mandatory",
+            scrollSnapType: scrollLocked ? "none" : "x mandatory",
             scrollbarWidth: "none",
             msOverflowStyle: "none",
             WebkitOverflowScrolling: "touch",
@@ -170,8 +204,8 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
             marginBottom: "-14px",
             paddingTop: "15px",
             paddingBottom: "19px",
-            maskImage: rowExpanded ? SESSION_EXPANDED_MASK : EDGE_FADE_MASK,
-            WebkitMaskImage: rowExpanded ? SESSION_EXPANDED_MASK : EDGE_FADE_MASK,
+            maskImage: sessionFade ? "none" : EDGE_FADE_MASK,
+            WebkitMaskImage: sessionFade ? "none" : EDGE_FADE_MASK,
           }}
         >
           {/* Leading spacer lets tile[0] reach the viewport center at scrollLeft = 0. */}
@@ -186,17 +220,28 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
             // Inline instructions on the selected tile of an expanded row —
             // resting included, so the tile holds its size while the ring ticks.
             const showSteps = inSession && isSelected && !session.dropped && session.expanded;
+            // With the row's mask off during a session, each tile carries its
+            // own edge fade: previous tiles hidden, next tile faded — and the
+            // neighbors fade away entirely as the row expands over them. The
+            // waiting half of the current pair sits back a touch so the tile
+            // whose turn it is reads as live.
+            const tileOpacity = !sessionFade ? 1
+              : isSelected ? (role === "waiting" ? 0.6 : 1)
+              : rowExpanded ? 0
+              : i === displayLevel + 1 ? 0.6 : 0;
+            const tileExpanded = rowExpanded && isSelected;
             return (
               <div
                 key={i}
                 ref={(el) => (tileRefs.current[i] = el)}
                 style={{
                   position: "relative",
-                  flex: `0 0 ${rowExpanded && isSelected ? EXPANDED_TILE_W : `${TILE_W}px`}`,
+                  flex: `0 0 ${tileExpanded ? EXPANDED_TILE_W : `${TILE_W}px`}`,
+                  marginLeft: tileExpanded ? EXPANDED_TILE_ML : "0px",
                   minHeight: `${TILE_MIN_H}px`,
                   scrollSnapAlign: "center",
                   display: "flex",
-                  transition: "flex-basis 0.4s ease",
+                  transition: `flex-basis ${EXPAND_MS}ms ${EXPAND_EASE}, margin-left ${EXPAND_MS}ms ${EXPAND_EASE}`,
                 }}
               >
                 <button
@@ -235,9 +280,7 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                     boxShadow: isSelected
                       ? `0 2px 8px ${fade(tree.color, 0.18)}, 0 1px 3px rgba(40,30,20,0.06)`
                       : isLocked ? "none" : "0 1px 2px rgba(40,30,20,0.04)",
-                    // The waiting half of the current pair sits back a touch so
-                    // the tile whose turn it is reads as live.
-                    opacity: role === "waiting" ? 0.6 : 1,
+                    opacity: tileOpacity,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "center",
@@ -245,7 +288,7 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                     fontFamily: "'DM Sans', sans-serif",
                     cursor: !inSession || actionable ? "pointer" : "default",
                     textAlign: "left",
-                    transition: "box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease",
+                    transition: "box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease, opacity 0.3s ease",
                   }}
                 >
                   {/* Progress sits along the tile's top edge, on the same
@@ -254,8 +297,9 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                       the selected tile's layout. */}
                   {inSession && !session.dropped && isSelected ? (
                     // Sets done this session (full for finished phases,
-                    // empty for upcoming ones).
-                    <span aria-hidden style={{ position: "absolute", top: "12px", left: "12px", display: "flex", gap: "5px" }}>
+                    // empty for upcoming ones). z-index keeps them visible
+                    // above the full-tile rest overlay.
+                    <span aria-hidden style={{ position: "absolute", top: "12px", left: "12px", zIndex: 2, display: "flex", gap: "5px" }}>
                       {Array.from({ length: SETS }).map((_, j) => (
                         <span key={j} style={{
                           width: "9px",
@@ -281,29 +325,34 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                       ))}
                     </span>
                   )}
-                  {/* Rest countdown rides the top-right corner (the circled-?'s
-                      spot outside a session) so the tile keeps its full size —
-                      name and instructions stay put — while the ring ticks. */}
+                  {/* Rest countdown covers the whole tile (name and steps stay
+                      mounted underneath so the tile holds its size); the set
+                      dots ride above it. A tap anywhere still skips 10s via
+                      the button's onClick. */}
                   {isRestingTile && (
                     <span style={{
                       position: "absolute",
-                      top: "7px",
-                      right: "10px",
+                      inset: 0,
+                      zIndex: 1,
+                      borderRadius: "12px",
+                      background: `linear-gradient(0deg, ${fade(tree.color, 0.1)}, ${fade(tree.color, 0.1)}), #fff`,
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px",
+                      justifyContent: "center",
+                      gap: "16px",
+                      animation: "rest-overlay-in 0.25s ease",
                     }}>
                       <span style={{
                         fontFamily: "'Fraunces', serif",
                         fontStyle: "italic",
-                        fontSize: "16px",
+                        fontSize: "22px",
                         fontWeight: 600,
                         color: tree.color,
                         lineHeight: 1,
                       }}>
                         Rest
                       </span>
-                      <CircleProgress remaining={session.restRemaining} total={session.restTotal} color={tree.color} size={36} />
+                      <CircleProgress remaining={session.restRemaining} total={session.restTotal} color={tree.color} size={64} />
                     </span>
                   )}
                   <span style={{
@@ -322,18 +371,27 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                   </span>
                   {/* Inline instructions, expanded during a session on the
                       pair in play (and the previewed next pair). Always
-                      mounted at max-height 0 so the expansion animates. */}
+                      mounted, collapsed to a 0px grid row, so the expansion
+                      animates 0 → STEPS_H: a fixed target keeps every tile
+                      the same expanded size (and keeps the growth smooth —
+                      a content-driven height moves as the text rewraps). */}
                   <span
                     aria-hidden={!showSteps}
                     style={{
-                      display: "block",
+                      display: "grid",
                       alignSelf: "stretch",
-                      overflow: "hidden",
-                      maxHeight: showSteps ? `${STEPS_MAX_H}px` : "0px",
+                      gridTemplateRows: showSteps ? `${STEPS_H}px` : "0px",
                       opacity: showSteps ? 1 : 0,
-                      transition: "max-height 0.4s ease, opacity 0.35s ease",
+                      // The box expands with the tile, but the text waits for
+                      // the expansion to (nearly) finish before fading in, so
+                      // it's never seen rewrapping mid-animation; on collapse
+                      // it vanishes quickly for the same reason.
+                      transition: showSteps
+                        ? `grid-template-rows ${EXPAND_MS}ms ${EXPAND_EASE}, opacity 0.3s ease ${EXPAND_MS - 120}ms`
+                        : `grid-template-rows ${EXPAND_MS}ms ${EXPAND_EASE}, opacity 0.12s ease`,
                     }}
                   >
+                    <span style={{ display: "block", overflow: "hidden", minHeight: 0 }}>
                     <span style={{ display: "flex", flexDirection: "column", gap: "6px", padding: "10px 2px 2px" }}>
                       {(ex.steps || []).map((s, k) => (
                         <span key={k} style={{
@@ -352,6 +410,7 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
                           <span style={{ minWidth: 0 }}>{s}</span>
                         </span>
                       ))}
+                    </span>
                     </span>
                   </span>
                 </button>
@@ -443,6 +502,10 @@ export default function ProgressionRow({ tree, activeLevel, owned, session, onLe
           lineHeight: 1.15,
           pointerEvents: "none",
           zIndex: 1,
+          // The expanded tile slides under the label's spot, so the label
+          // bows out while its row is in play.
+          opacity: rowExpanded ? 0 : 1,
+          transition: "opacity 0.3s ease",
         }}>
           <div>{tree.name}</div>
         </div>
@@ -506,7 +569,7 @@ function Chevron({ direction }) {
 }
 
 function CircleProgress({ remaining, total, color, size }) {
-  const strokeWidth = 4;
+  const strokeWidth = Math.max(4, Math.round(size / 13));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const pct = total > 0 ? (total - remaining) / total : 0;
@@ -535,7 +598,7 @@ function CircleProgress({ remaining, total, color, size }) {
         alignItems: "center",
         justifyContent: "center",
         fontFamily: "'Fraunces', serif",
-        fontSize: "12px",
+        fontSize: `${Math.round(size * 0.29)}px`,
         fontWeight: 500,
         color: "#3a352e",
         fontVariantNumeric: "tabular-nums",

@@ -149,24 +149,93 @@ export default function App() {
   // rest is rest, the clock keeps running until the workout is stopped.
   const ws = useWorkoutSession(workoutActive, activeLevels);
 
-  // Follow the workout down the page: when the phase changes (or the session
-  // starts/completes), bring the relevant caption or the completion banner
-  // into view in the rows column.
+  // The workout ratchets down the page. Each stage pins an anchor to the top
+  // of the rows column: the phase's caption while its pair is in play; the
+  // resting row when the pair's trailing rest starts (so its finished partner
+  // scrolls off screen); the next caption when that rest runs out (so the
+  // resting tile scrolls off too). The user can't scroll back above the
+  // pinned anchor (see clampRowsScroll) until the workout completes or is
+  // stopped — both release the ratchet and glide back to the top. Rows are
+  // still easing open/closed while these scrolls run, so each stage is an
+  // rAF loop toward the anchor's live position; the filler div at the bottom
+  // of the column grows (via ref, no re-render) to guarantee there is always
+  // enough depth below the anchor to actually pin it to the top.
   const captionRefs = useRef({});
+  const rowRefs = useRef({});
   const bannerRef = useRef(null);
+  const rowsRef = useRef(null);
+  const fillerRef = useRef(null);
+  const floorRef = useRef(null); // element the user can't scroll back above
   const prevPhaseRef = useRef(null);
+
+  const clampRowsScroll = (e) => {
+    const scroller = rowsRef.current;
+    const anchor = floorRef.current;
+    // React bubbles onScroll, so ignore the rows' inner tile scrollers.
+    if (!scroller || e.target !== scroller || !anchor) return;
+    const floor = scroller.scrollTop +
+      anchor.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+    if (scroller.scrollTop < floor - 1) scroller.scrollTop = Math.max(0, floor);
+  };
+
   useEffect(() => {
     const phase = ws ? (ws.isComplete ? "complete" : ws.focusPhaseIdx) : null;
+    // Keyed on the actual phase too, so the next stage runs when it catches
+    // up to a previewed focus (trailing rest over).
+    const key = phase == null ? null : `${phase}:${ws.phaseIdx}`;
     const prev = prevPhaseRef.current;
-    prevPhaseRef.current = phase;
-    if (phase == null || phase === prev) return;
-    const target = phase === "complete" ? bannerRef.current : captionRefs.current[phase];
-    target?.scrollIntoView({ block: "start", behavior: "smooth" });
-    // Rows above/below are still animating their expand/collapse when the
-    // first scroll lands; realign once the heights settle.
-    const id = setTimeout(() => target?.scrollIntoView({ block: "start", behavior: "smooth" }), 550);
-    return () => clearTimeout(id);
-  }, [ws?.focusPhaseIdx, ws?.isComplete]);
+    prevPhaseRef.current = key;
+    const scroller = rowsRef.current;
+    const ease = (t) => 1 - Math.pow(1 - t, 3);
+    if (key == null) {
+      // Session over (stopped): release the ratchet and glide back to the top.
+      floorRef.current = null;
+      if (fillerRef.current) fillerRef.current.style.height = "0px";
+      if (prev == null || !scroller || scroller.scrollTop === 0) return;
+      const from = scroller.scrollTop;
+      const t0 = performance.now();
+      let raf = requestAnimationFrame(function tick(now) {
+        const t = Math.min(1, (now - t0) / 620);
+        scroller.scrollTop = from * (1 - ease(t));
+        if (t < 1) raf = requestAnimationFrame(tick);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+    if (key === prev || !scroller) return;
+    const preview = !ws.isComplete && ws.focusPhaseIdx > ws.phaseIdx;
+    const anchor = phase === "complete" ? bannerRef.current
+      : preview ? rowRefs.current[TREES.findIndex((_, i) => ws.rowState(i).role === "resting")]
+      : captionRefs.current[phase];
+    if (!anchor) return;
+    if (phase === "complete") {
+      // Complete counts as over: unlock before scrolling back up to the banner.
+      floorRef.current = null;
+      if (fillerRef.current) fillerRef.current.style.height = "0px";
+    }
+    const from = scroller.scrollTop;
+    const t0 = performance.now();
+    let raf = requestAnimationFrame(function tick(now) {
+      // Outlasts the tiles' expansion so the last frames land on settled layout.
+      const t = Math.min(1, (now - t0) / 620);
+      const desired = scroller.scrollTop +
+        anchor.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+      const filler = fillerRef.current;
+      if (filler && phase !== "complete") {
+        // Grow the bottom filler (never shrink mid-session — that would jump
+        // the scroll) so the anchor can reach the very top even when the
+        // rows below it don't fill the viewport.
+        const bare = scroller.scrollHeight - filler.offsetHeight;
+        const shortfall = Math.ceil(desired + scroller.clientHeight - bare);
+        if (shortfall > filler.offsetHeight) filler.style.height = `${shortfall}px`;
+      }
+      const to = Math.max(0, Math.min(desired, scroller.scrollHeight - scroller.clientHeight));
+      scroller.scrollTop = from + (to - from) * ease(t);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      // The anchor becomes the new floor once it's pinned.
+      else if (phase !== "complete") floorRef.current = anchor;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [ws?.focusPhaseIdx, ws?.isComplete, ws?.phaseIdx]);
 
   // Sliding underline that glides between the active page's title across the header.
   const rowRef = useRef(null);
@@ -354,7 +423,7 @@ export default function App() {
           ) : view === "gym" ? (
             <MyGym owned={owned} onToggle={toggleEquipment} />
           ) : (
-          <div className="rows-scroller" style={{
+          <div className="rows-scroller" ref={rowsRef} onScroll={clampRowsScroll} style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
@@ -468,10 +537,15 @@ export default function App() {
                     onRequestEquipment={(treeId, nodeIndex, node) =>
                       setEquipPrompt({ treeId, nodeIndex, node })
                     }
+                    rowRef={(el) => (rowRefs.current[idx] = el)}
                   />
                 </Fragment>
               );
             })}
+            {/* Ratchet depth for the session scroll-follow: grown via ref so
+                the pinned anchor can always reach the top of the column;
+                zeroed outside a session. */}
+            <div ref={fillerRef} aria-hidden style={{ flexShrink: 0, height: 0 }} />
           </div>
           )}
         </div>

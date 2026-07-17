@@ -40,10 +40,10 @@ If that npx cache path is gone, `npx playwright --version` re-resolves it; find 
 
 The workout runs *inside* the home rows (no separate page):
 
-1. Start workout → the current pair's tiles expand with inline numbered instructions and their rows grow; other rows/captions dim to view-only. Tapping the active tile logs a set and the tile becomes a compact rest countdown ring (tap = skip 10s).
+1. Start workout → the current pair's tiles expand diagonally to span the viewport (12px inset each side, row-name label fades out) with inline numbered instructions; other rows/captions dim to view-only. Tapping the active tile logs a set and a full-tile "Rest" overlay with a countdown ring covers it, set dots still visible (tap anywhere = skip 10s).
 2. The header's Start button becomes a red **Stop workout** button during a session. There is no pause; nav between views leaves the clock running.
 3. Stop workout mid-session opens the **StopConfirm** dialog; "Keep going" / Escape / overlay tap dismiss it with the session intact, "Stop" ends the session. Once the workout is complete, Stop ends immediately with no dialog.
 4. Row swipe/chevrons/`+` are inert during a session, and the circled `?` is hidden — instructions render inline in the expanded tiles instead.
-5. Trailing-rest preview: after the last set of a pair, while its rest ring still ticks, the *next* pair expands, its caption lights, and the view scrolls to it; the previewed tiles aren't tappable until the rest ends. The rest tile stays tappable throughout.
+5. Scroll ratchet: the workout only moves down the page. When a pair's trailing rest starts, the resting row pins to the top of the rows column (its finished partner and everything above scroll off screen) while the *next* pair expands below with its caption lit; when the rest ends, the next caption pins to the top (the resting tile scrolls off). Scrolling back up above the pinned anchor is blocked (programmatic `scrollTop` writes snap back) until the workout completes or is stopped — both glide the column back to the top. A hidden filler div at the column's bottom grows to guarantee the pin; expect it at height 0 outside a session. The previewed tiles aren't tappable until the rest ends; the rest tile stays tappable throughout.
 6. Full session: spam the rest tile to skip rests; phases advance down the page; completion banner appears at the top of the rows with an End button.
-7. Confirming Stop anytime → rows instantly back to normal, Start workout pill returns.
+7. Confirming Stop anytime → rows animate back to normal (each row's scroller stays locked ~530ms while tiles collapse, then re-centers), Start workout pill returns. Wait ~800ms after Stop before asserting tile positions.
